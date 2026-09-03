@@ -1,6 +1,5 @@
-[theme]
-primaryColor = "#2E5077"
-backgroundColor = "#F6F8FA"
-secondaryBackgroundColor = "#FFFFFF"
-textColor = "#262730"
-font = "sans serif"
+streamlit
+supabase
+fpdf2
+pandas
+python-dotenv

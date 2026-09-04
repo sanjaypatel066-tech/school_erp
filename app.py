@@ -149,7 +149,7 @@ else:
 
     elif menu == "🤖 AI અહેવાલ":
         st.header("🤖 સ્માર્ટ AI અહેવાલ લેખક")
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        genai.configure(api_key="AQ.Ab8RN6ItYwVWCU4CQNZlF0Qc31nYsKbYrw_WsP825gauLthqBQ")
         
         topic = st.text_area("અહેવાલની ટૂંકી વિગત લખો:", placeholder="દા.ત. વિજ્ઞાન મેળો, 50 પ્રોજેક્ટ...")
         

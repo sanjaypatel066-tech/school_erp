@@ -160,7 +160,7 @@ else:
                 with st.spinner("AI અહેવાલ લખી રહ્યું છે..."):
                     try:
                         # એરરમાં કહ્યા મુજબ નવું લેટેસ્ટ મોડલ મૂક્યું છે
-                        model = genai.GenerativeModel('gemini-3.6-flash')
+                        model = genai.GenerativeModel('gemini-1.5-flash')
                         prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો:\n\n{topic}"
                         response = model.generate_content(prompt)
                         

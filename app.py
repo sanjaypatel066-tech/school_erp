@@ -3,6 +3,9 @@ from auth import login_form, logout
 from modules.reports import show_report_module
 from database import supabase
 import datetime
+import json
+import gspread
+from google.oauth2.service_account import Credentials
 
 # Page Config
 st.set_page_config(page_title="School ERP", layout="wide", initial_sidebar_state="expanded")
@@ -16,27 +19,21 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Session State Initialization
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
-# Application Logic
 if not st.session_state.logged_in:
     login_form()
 else:
-    # Sidebar Navigation
     st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2991/2991148.png", width=100)
     st.sidebar.title(f"નમસ્તે, {st.session_state.name}")
     st.sidebar.markdown(f"**હોદ્દો:** {st.session_state.role}")
     
-    # રોલ પ્રમાણે મેનુ અલગ દેખાશે
-    menu_options = ["🏠 ડેશબોર્ડ", "📝 અહેવાલ મોડ્યુલ", "👨‍🏫 શિક્ષક પ્રોફાઇલ", "⚙️ સેટિંગ્સ"]
-    menu = st.sidebar.radio("મેનુ પસંદ કરો", menu_options)
+    menu = st.sidebar.radio("મેનુ પસંદ કરો", ["🏠 ડેશબોર્ડ", "📝 અહેવાલ મોડ્યુલ", "👨‍🏫 શિક્ષક પ્રોફાઇલ", "⚙️ સેટિંગ્સ"])
     
     if st.sidebar.button("લોગ આઉટ", use_container_width=True):
         logout()
 
-    # ---------------- 1. ડેશબોર્ડ (અલગ-અલગ) ----------------
     if menu == "🏠 ડેશબોર્ડ":
         if st.session_state.role == "Principal":
             st.header("🏫 આચાર્યશ્રીનું મુખ્ય ડેશબોર્ડ")
@@ -44,45 +41,32 @@ else:
             col1.metric("શાળાના કુલ વિદ્યાર્થીઓ", "250")
             col2.metric("આજની શિક્ષકોની હાજરી", "12/15")
             col3.metric("શાળાના કુલ અહેવાલો", "24")
-            st.info("અહીંથી તમે સમગ્ર શાળાની કામગીરી પર નજર રાખી શકશો.")
         else:
             st.header(f"સ્વાગત છે, {st.session_state.name} શિક્ષકમિત્ર! 👨‍🏫")
             col1, col2 = st.columns(2)
             col1.metric("તમારા બનાવેલા અહેવાલો", "05")
-            col2.metric("તમારો આજનો તાસ/પિરિયડ", "ધોરણ ૬, ૭")
-            st.success("શિક્ષક તરીકે તમે અહેવાલો બનાવી શકશો અને તમારી પ્રોફાઇલ જોઈ શકશો.")
+            col2.metric("તમારો આજનો તાસ", "ધોરણ ૬, ૭")
             
-    # ---------------- 2. અહેવાલ મોડ્યુલ ----------------
     elif menu == "📝 અહેવાલ મોડ્યુલ":
         show_report_module()
         
-    # ---------------- 3. શિક્ષક પ્રોફાઇલ ----------------
     elif menu == "👨‍🏫 શિક્ષક પ્રોફાઇલ":
         st.header("👨‍🏫 શિક્ષક પ્રોફાઇલ અને માહિતી")
-        
         if st.session_state.role == "Principal":
-            st.write("આચાર્યશ્રી, તમે અહીંથી કોઈપણ શિક્ષકની માહિતી ઉમેરી કે બદલી શકો છો.")
-            
-            # ડેટાબેઝમાંથી શિક્ષકોનું લિસ્ટ લાવવું
             response = supabase.table("school_users").select("*").eq("role", "Teacher").execute()
             teachers = response.data
-            
             if len(teachers) > 0:
                 teacher_names = {t['name']: t for t in teachers}
-                selected_teacher_name = st.selectbox("શિક્ષક પસંદ કરો:", list(teacher_names.keys()))
-                selected_teacher = teacher_names[selected_teacher_name]
+                selected_name = st.selectbox("શિક્ષક પસંદ કરો:", list(teacher_names.keys()))
+                selected_teacher = teacher_names[selected_name]
                 
                 with st.form("teacher_profile_form"):
                     st.subheader(f"{selected_teacher['name']} ની માહિતી")
-                    
-                    # ફોર્મમાં ડેટા ભરવો (જો જૂનો હોય તો તે દેખાશે)
                     col1, col2 = st.columns(2)
                     new_phone = col1.text_input("મોબાઈલ નંબર", value=selected_teacher.get('phone_number') or "")
                     new_aadhaar = col2.text_input("આધારકાર્ડ નંબર", value=selected_teacher.get('aadhaar_number') or "")
+                    new_qual = st.text_input("શૈક્ષણિક લાયકાત", value=selected_teacher.get('qualification') or "")
                     
-                    new_qual = st.text_input("શૈક્ષણિક લાયકાત (દા.ત. B.Sc, B.Ed)", value=selected_teacher.get('qualification') or "")
-                    
-                    # તારીખ માટે ખાસ કોડ (જો તારીખ ન હોય તો આજની તારીખ બતાવશે)
                     b_date = datetime.datetime.strptime(selected_teacher['birthdate'], "%Y-%m-%d").date() if selected_teacher.get('birthdate') else datetime.date(1990, 1, 1)
                     j_date = datetime.datetime.strptime(selected_teacher['joining_date'], "%Y-%m-%d").date() if selected_teacher.get('joining_date') else datetime.date.today()
                     
@@ -90,60 +74,58 @@ else:
                     new_bdate = col3.date_input("જન્મ તારીખ", value=b_date)
                     new_jdate = col4.date_input("જોડાવાની તારીખ", value=j_date)
                     
-                    submit_profile = st.form_submit_button("માહિતી સેવ કરો")
-                    
-                    if submit_profile:
-                        # સુપાબેઝમાં ડેટા અપડેટ કરવો
+                    if st.form_submit_button("માહિતી સેવ કરો"):
+                        # ૧. ડેટાબેઝમાં સેવ
                         supabase.table("school_users").update({
-                            "phone_number": new_phone,
-                            "aadhaar_number": new_aadhaar,
-                            "qualification": new_qual,
-                            "birthdate": str(new_bdate),
-                            "joining_date": str(new_jdate)
+                            "phone_number": new_phone, "aadhaar_number": new_aadhaar, 
+                            "qualification": new_qual, "birthdate": str(new_bdate), "joining_date": str(new_jdate)
                         }).eq("id", selected_teacher['id']).execute()
-                        st.success("✅ શિક્ષકની પ્રોફાઇલ સફળતાપૂર્વક અપડેટ થઈ ગઈ છે!")
+                        
+                        # ૨. ગૂગલ શીટ લાઈવ સિંક
+                        try:
+                            creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
+                            scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+                            creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+                            client = gspread.authorize(creds)
+                            
+                            sheet = client.open("શિક્ષક માહિતી").sheet1
+                            sheet.clear() # જૂનો ડેટા ભૂંસીને ફ્રેશ કરશે
+                            sheet.append_row(["શિક્ષકનું નામ", "મોબાઈલ નંબર", "આધારકાર્ડ નંબર", "લાયકાત", "જન્મ તારીખ", "જોડાવાની તારીખ"])
+                            
+                            all_t = supabase.table("school_users").select("*").eq("role", "Teacher").execute().data
+                            rows = [[t.get('name',''), t.get('phone_number',''), t.get('aadhaar_number',''), t.get('qualification',''), t.get('birthdate',''), t.get('joining_date','')] for t in all_t]
+                            if rows:
+                                sheet.append_rows(rows)
+                                
+                            st.success("✅ પ્રોફાઇલ અપડેટ થઈ ગઈ છે અને Google Sheet માં Live Sync થઈ ગઈ છે!")
+                        except Exception as e:
+                            st.success("✅ પ્રોફાઇલ સોફ્ટવેરમાં સેવ થઈ ગઈ છે.")
+                            st.error(f"⚠️ ગૂગલ શીટમાં કનેક્ટ થવામાં ભૂલ (સિક્રેટ કી અથવા નામ ચેક કરો): {e}")
             else:
-                st.warning("હજુ સુધી કોઈ શિક્ષકનું એકાઉન્ટ બનાવેલ નથી. પહેલા 'સેટિંગ્સ' માંથી શિક્ષક ઉમેરો.")
-                
-        else: # જો શિક્ષક પોતે લોગિન હોય તો
-            st.write("અહીં તમારી પ્રોફાઇલની વિગતો આપેલી છે. જો કોઈ ભૂલ હોય તો આચાર્યશ્રીનો સંપર્ક કરો.")
-            response = supabase.table("school_users").select("*").eq("username", st.session_state.username).execute()
-            my_data = response.data[0]
-            
+                st.warning("કોઈ શિક્ષક ઉમેરેલ નથી.")
+        else:
+            st.write("અહીં તમારી પ્રોફાઇલની વિગતો આપેલી છે.")
+            my_data = supabase.table("school_users").select("*").eq("username", st.session_state.username).execute().data[0]
             st.info(f"**નામ:** {my_data.get('name')}")
-            st.write(f"📞 **મોબાઈલ:** {my_data.get('phone_number') or 'માહિતી નથી'}")
-            st.write(f"💳 **આધાર નંબર:** {my_data.get('aadhaar_number') or 'માહિતી નથી'}")
-            st.write(f"🎓 **લાયકાત:** {my_data.get('qualification') or 'માહિતી નથી'}")
-            st.write(f"🎂 **જન્મ તારીખ:** {my_data.get('birthdate') or 'માહિતી નથી'}")
-            st.write(f"🏢 **જોડાવાની તારીખ:** {my_data.get('joining_date') or 'માહિતી નથી'}")
+            st.write(f"📞 **મોબાઈલ:** {my_data.get('phone_number') or '-'}")
+            st.write(f"💳 **આધાર નંબર:** {my_data.get('aadhaar_number') or '-'}")
 
-    # ---------------- 4. સેટિંગ્સ ----------------
     elif menu == "⚙️ સેટિંગ્સ":
         st.header("⚙️ સેટિંગ્સ")
         tab1, tab2 = st.tabs(["🔑 પાસવર્ડ બદલો", "👤 નવો યુઝર ઉમેરો"])
-        
         with tab1:
-            st.subheader("તમારો પાસવર્ડ બદલો")
-            new_password = st.text_input("નવો પાસવર્ડ લખો", type="password")
-            if st.button("પાસવર્ડ સેવ કરો", key="btn_pass"):
-                if new_password:
-                    supabase.table("school_users").update({"password": new_password}).eq("username", st.session_state.username).execute()
-                    st.success("✅ તમારો પાસવર્ડ બદલાઈ ગયો છે!")
-                    
+            new_password = st.text_input("નવો પાસવર્ડ", type="password")
+            if st.button("પાસવર્ડ સેવ કરો", key="btn_pass") and new_password:
+                supabase.table("school_users").update({"password": new_password}).eq("username", st.session_state.username).execute()
+                st.success("✅ પાસવર્ડ બદલાઈ ગયો છે!")
         with tab2:
             if st.session_state.role == "Principal":
-                st.subheader("શાળાના નવા શિક્ષકનું એકાઉન્ટ બનાવો")
-                new_name = st.text_input("શિક્ષકનું પૂરું નામ")
-                new_user = st.text_input("નવું યુઝરનેમ (દા.ત. ramesh_sir)")
-                new_pass = st.text_input("નવો પાસવર્ડ", type="password")
-                new_role = st.selectbox("હોદ્દો", ["Teacher", "Clerk"])
-                
-                if st.button("નવું એકાઉન્ટ બનાવો", key="btn_user"):
-                    if new_name and new_user and new_pass:
-                        try:
-                            supabase.table("school_users").insert({"name": new_name, "username": new_user, "password": new_pass, "role": new_role}).execute()
-                            st.success(f"✅ {new_name} નું એકાઉન્ટ બની ગયું છે!")
-                        except:
-                            st.error("❌ આ યુઝરનેમ પહેલેથી છે. બીજું ટ્રાય કરો.")
-            else:
-                st.error("⛔ આ સુવિધા માત્ર આચાર્યશ્રી માટે છે.")
+                n_name = st.text_input("શિક્ષકનું પૂરું નામ")
+                n_user = st.text_input("નવું યુઝરનેમ")
+                n_pass = st.text_input("નવો પાસવર્ડ", type="password")
+                if st.button("નવું એકાઉન્ટ બનાવો", key="btn_user") and n_name and n_user and n_pass:
+                    try:
+                        supabase.table("school_users").insert({"name": n_name, "username": n_user, "password": n_pass, "role": "Teacher"}).execute()
+                        st.success(f"✅ {n_name} નું એકાઉન્ટ બની ગયું છે!")
+                    except:
+                        st.error("❌ આ યુઝરનેમ પહેલેથી છે.")

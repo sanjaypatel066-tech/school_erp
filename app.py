@@ -7,7 +7,7 @@ import json
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
-import google.generativeai as genai
+import requests
 
 # Page Config
 st.set_page_config(page_title="School ERP", layout="wide", initial_sidebar_state="expanded")
@@ -77,13 +77,11 @@ else:
                     new_jdate = col4.date_input("જોડાવાની તારીખ", value=j_date)
                     
                     if st.form_submit_button("માહિતી સેવ કરો"):
-                        # ૧. ડેટાબેઝમાં સેવ
                         supabase.table("school_users").update({
                             "phone_number": new_phone, "aadhaar_number": new_aadhaar, 
                             "qualification": new_qual, "birthdate": str(new_bdate), "joining_date": str(new_jdate)
                         }).eq("id", selected_teacher['id']).execute()
                         
-                        # ૨. ગૂગલ શીટ લાઈવ સિંક
                         try:
                             creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
                             scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -91,7 +89,6 @@ else:
                             client = gspread.authorize(creds)
                             
                             sheet = client.open_by_key("1BCu-RmpfFDixmt8IQ2B82fz3XcdOEhICG2E9_30_sQw").sheet1
-                            
                             response = supabase.table("school_users").select("*").eq("role", "Teacher").execute()
                             all_t = response.data
                             
@@ -100,12 +97,10 @@ else:
                                 all_data.append([t.get('name',''), t.get('phone_number',''), t.get('aadhaar_number',''), t.get('qualification',''), t.get('birthdate',''), t.get('joining_date','')])
                                 
                             sheet.clear()
-                            
                             try:
                                 sheet.update(values=all_data, range_name="A1")
                             except TypeError:
                                 sheet.update("A1", all_data)
-                                
                             st.success("✅ પ્રોફાઇલ સેવ થઈ ગઈ છે અને Google Sheet માં ડેટા Live Sync થઈ ગયો છે!")
                         except Exception as e:
                             if "200" in str(e):
@@ -124,11 +119,9 @@ else:
     elif menu == "📊 સ્માર્ટ પત્રક":
         st.header("📊 સ્માર્ટ પત્રક (1-Click Excel)")
         st.info("કચેરીમાંથી માંગ્યા મુજબની માહિતી પર ટીક કરો અને સીધી Excel ફાઈલ ડાઉનલોડ કરો.")
-        
         all_t = supabase.table("school_users").select("*").eq("role", "Teacher").execute().data
         if all_t:
             df = pd.DataFrame(all_t)
-            
             st.write("**તમારે પત્રકમાં કઈ કઈ માહિતી જોઈએ છે? (ટીક કરો)**")
             col1, col2, col3 = st.columns(3)
             show_name = col1.checkbox("શિક્ષકનું નામ", value=True)
@@ -143,26 +136,21 @@ else:
             if selected_cols:
                 final_df = df[selected_cols]
                 st.dataframe(final_df, use_container_width=True)
-                
                 csv = final_df.to_csv(index=False).encode('utf-8-sig')
                 st.download_button("📥 Excel ફાઈલ ડાઉનલોડ કરો", data=csv, file_name="smart_patrak.csv", mime="text/csv")
                 
-   elif menu == "🤖 AI અહેવાલ":
+    elif menu == "🤖 AI અહેવાલ":
         st.header("🤖 સ્માર્ટ AI અહેવાલ લેખક (લેટરપેડ સાથે)")
         
         my_api_key = st.secrets["GEMINI_API_KEY"].strip()
-        
         topic = st.text_area("અહેવાલની ટૂંકી વિગત લખો:", placeholder="દા.ત. વિજ્ઞાન મેળો, 50 પ્રોજેક્ટ...")
         
         if st.button("✨ અહેવાલ બનાવો"):
             if topic:
                 with st.spinner("તમારો ફાઇનલ લેટરપેડ અહેવાલ બની રહ્યો છે..."):
                     try:
-                        import requests
-                        
                         prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો. માત્ર અહેવાલનો મુખ્ય ભાગ જ લખો, ઉપર તારીખ કે નીચે સહી માટે જગ્યા ન છોડતા:\n\n{topic}"
                         
-                        # ડાયરેક્ટ ગૂગલના સર્વરનો સંપર્ક (કોઈ લાઈબ્રેરીની જરૂર નહીં)
                         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={my_api_key}"
                         payload = {"contents": [{"parts": [{"text": prompt}]}]}
                         
@@ -175,7 +163,6 @@ else:
                             
                             today_date = datetime.date.today().strftime("%d-%m-%Y")
                             
-                            # શાનદાર લેટરપેડ ડિઝાઇન
                             letterhead_html = f"""
                             <div style="border: 2px solid #2E5077; padding: 40px; border-radius: 10px; background-color: white; color: black; font-family: sans-serif; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);">
                                 <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #2E5077; padding-bottom: 15px; margin-bottom: 25px;">

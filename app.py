@@ -147,27 +147,75 @@ else:
                 csv = final_df.to_csv(index=False).encode('utf-8-sig')
                 st.download_button("📥 Excel ફાઈલ ડાઉનલોડ કરો", data=csv, file_name="smart_patrak.csv", mime="text/csv")
                 
-    elif menu == "🤖 AI અહેવાલ":
-        st.header("🤖 સ્માર્ટ AI અહેવાલ લેખક")
+   elif menu == "🤖 AI અહેવાલ":
+        st.header("🤖 સ્માર્ટ AI અહેવાલ લેખક (લેટરપેડ સાથે)")
         
         my_api_key = st.secrets["GEMINI_API_KEY"].strip()
-        genai.configure(api_key=my_api_key)
         
         topic = st.text_area("અહેવાલની ટૂંકી વિગત લખો:", placeholder="દા.ત. વિજ્ઞાન મેળો, 50 પ્રોજેક્ટ...")
         
         if st.button("✨ અહેવાલ બનાવો"):
             if topic:
-                with st.spinner("AI અહેવાલ લખી રહ્યું છે..."):
+                with st.spinner("તમારો ફાઇનલ લેટરપેડ અહેવાલ બની રહ્યો છે..."):
                     try:
-                        # એરરમાં કહ્યા મુજબ નવું લેટેસ્ટ મોડલ મૂક્યું છે
-                        model = genai.GenerativeModel('gemini-1.5-flash')
-                        prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો:\n\n{topic}"
-                        response = model.generate_content(prompt)
+                        import requests
                         
-                        st.success("✅ અહેવાલ તૈયાર છે!")
-                        st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)
+                        prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો. માત્ર અહેવાલનો મુખ્ય ભાગ જ લખો, ઉપર તારીખ કે નીચે સહી માટે જગ્યા ન છોડતા:\n\n{topic}"
+                        
+                        # ડાયરેક્ટ ગૂગલના સર્વરનો સંપર્ક (કોઈ લાઈબ્રેરીની જરૂર નહીં)
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={my_api_key}"
+                        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+                        
+                        res = requests.post(url, json=payload)
+                        data = res.json()
+                        
+                        if "candidates" in data:
+                            report_text = data['candidates'][0]['content']['parts'][0]['text'].replace('\n', '<br>')
+                            st.success("✅ અહેવાલ તૈયાર છે!")
+                            
+                            today_date = datetime.date.today().strftime("%d-%m-%Y")
+                            
+                            # શાનદાર લેટરપેડ ડિઝાઇન
+                            letterhead_html = f"""
+                            <div style="border: 2px solid #2E5077; padding: 40px; border-radius: 10px; background-color: white; color: black; font-family: sans-serif; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #2E5077; padding-bottom: 15px; margin-bottom: 25px;">
+                                    <div style="width: 15%;">
+                                        <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" width="90" alt="School Logo">
+                                    </div>
+                                    <div style="text-align: center; width: 70%;">
+                                        <h1 style="color: #2E5077; margin: 0; font-size: 28px;">શ્રી સરસ્વતી પ્રાથમિક શાળા</h1>
+                                        <p style="margin: 5px 0; font-size: 16px;">મુ. પો. આપણું ગામ, તા. આપણો તાલુકો, જિ. આપણો જિલ્લો</p>
+                                        <p style="margin: 0; font-size: 14px; color: #555;">U-DISE Code: 24000000000 | Email: school@gmail.com</p>
+                                    </div>
+                                    <div style="width: 15%; text-align: right;">
+                                        <p style="margin: 0; font-weight: bold; color: #2E5077;">તારીખ:</p>
+                                        <p style="margin: 0; font-size: 15px;">{today_date}</p>
+                                    </div>
+                                </div>
+                                <div style="min-height: 300px; font-size: 17px; line-height: 1.8; text-align: justify;">
+                                    {report_text}
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-top: 60px; padding-top: 20px;">
+                                    <div style="text-align: center; width: 30%;">
+                                        <p style="margin-bottom: 40px;">___________________</p>
+                                        <p style="margin: 0; font-weight: bold; color: #2E5077;">અહેવાલ લખનારની સહી</p>
+                                    </div>
+                                    <div style="text-align: center; width: 40%;">
+                                        <div style="height: 80px; width: 80px; border: 2px dashed #ccc; border-radius: 50%; margin: 0 auto 10px auto; display: flex; align-items: center; justify-content: center; color: #aaa; font-size: 12px; transform: rotate(-15deg);">
+                                            શાળાનો સિક્કો
+                                        </div>
+                                        <p style="margin: 0; font-weight: bold; color: #2E5077;">આચાર્યશ્રીની સહી અને સિક્કો</p>
+                                    </div>
+                                </div>
+                            </div>
+                            """
+                            st.markdown(letterhead_html, unsafe_allow_html=True)
+                            st.info("🖨️ આ અહેવાલની પ્રિન્ટ કાઢવા માટે કીબોર્ડ પરથી **Ctrl + P** દબાવો.")
+                        else:
+                            st.error(f"⚠️ ગૂગલ એરર: {data.get('error', {}).get('message', 'Unknown Error')}")
+                            
                     except Exception as e:
-                        st.error(f"⚠️ એરર: {e}")
+                        st.error(f"⚠️ કોડ એરર: {e}")
                         
     elif menu == "⚙️ સેટિંગ્સ":
         st.header("⚙️ સેટિંગ્સ")

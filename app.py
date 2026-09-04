@@ -31,7 +31,7 @@ else:
     st.sidebar.title(f"નમસ્તે, {st.session_state.name}")
     st.sidebar.markdown(f"**હોદ્દો:** {st.session_state.role}")
     
-    menu = st.sidebar.radio("મેનુ પસંદ કરો", ["🏠 ડેશબોર્ડ", "👨‍🏫 શિક્ષક પ્રોફાઇલ", "📝 અહેવાલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"])
+    menu = st.sidebar.radio("મેનુ પસંદ કરો", ["🏠 ડેશબોર્ડ", "👨‍🏫 શિક્ષક પ્રોફાઇલ", "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"])
     
     if st.sidebar.button("લોગ આઉટ", use_container_width=True):
         logout()
@@ -83,7 +83,7 @@ else:
                             "qualification": new_qual, "birthdate": str(new_bdate), "joining_date": str(new_jdate)
                         }).eq("id", selected_teacher['id']).execute()
                         
-# ૨. ગૂગલ શીટ લાઈવ સિંક
+                        # ૨. ગૂગલ શીટ લાઈવ સિંક
                         try:
                             creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
                             scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -92,18 +92,15 @@ else:
                             
                             sheet = client.open_by_key("1BCu-RmpfFDixmt8IQ2B82fz3XcdOEhICG2E9_30_sQw").sheet1
                             
-                            # ડેટાબેઝમાંથી બધા શિક્ષકોનો ડેટા લાવવો
                             response = supabase.table("school_users").select("*").eq("role", "Teacher").execute()
                             all_t = response.data
                             
-                            # એકસાથે પત્રક (Table) તૈયાર કરવું
                             all_data = [["શિક્ષકનું નામ", "મોબાઈલ નંબર", "આધારકાર્ડ નંબર", "લાયકાત", "જન્મ તારીખ", "જોડાવાની તારીખ"]]
                             for t in all_t:
                                 all_data.append([t.get('name',''), t.get('phone_number',''), t.get('aadhaar_number',''), t.get('qualification',''), t.get('birthdate',''), t.get('joining_date','')])
                                 
                             sheet.clear()
                             
-                            # લાઈબ્રેરીના જૂના/નવા વર્ઝન મુજબ ડેટા લખવો
                             try:
                                 sheet.update(values=all_data, range_name="A1")
                             except TypeError:
@@ -124,27 +121,7 @@ else:
             st.write(f"📞 **મોબાઈલ:** {my_data.get('phone_number') or '-'}")
             st.write(f"💳 **આધાર નંબર:** {my_data.get('aadhaar_number') or '-'}")
 
-    elif menu == "⚙️ સેટિંગ્સ":
-        st.header("⚙️ સેટિંગ્સ")
-        tab1, tab2 = st.tabs(["🔑 પાસવર્ડ બદલો", "👤 નવો યુઝર ઉમેરો"])
-        with tab1:
-            new_password = st.text_input("નવો પાસવર્ડ", type="password")
-            if st.button("પાસવર્ડ સેવ કરો", key="btn_pass") and new_password:
-                supabase.table("school_users").update({"password": new_password}).eq("username", st.session_state.username).execute()
-                st.success("✅ પાસવર્ડ બદલાઈ ગયો છે!")
-        with tab2:
-            if st.session_state.role == "Principal":
-                n_name = st.text_input("શિક્ષકનું પૂરું નામ")
-                n_user = st.text_input("નવું યુઝરનેમ")
-                n_pass = st.text_input("નવો પાસવર્ડ", type="password")
-                if st.button("નવું એકાઉન્ટ બનાવો", key="btn_user") and n_name and n_user and n_pass:
-                    try:
-                        supabase.table("school_users").insert({"name": n_name, "username": n_user, "password": n_pass, "role": "Teacher"}).execute()
-                        st.success(f"✅ {n_name} નું એકાઉન્ટ બની ગયું છે!")
-                    except:
-                        st.error("❌ આ યુઝરનેમ પહેલેથી છે.")
-
-elif menu == "📊 સ્માર્ટ પત્રક":
+    elif menu == "📊 સ્માર્ટ પત્રક":
         st.header("📊 સ્માર્ટ પત્રક (1-Click Excel)")
         st.info("કચેરીમાંથી માંગ્યા મુજબની માહિતી પર ટીક કરો અને સીધી Excel ફાઈલ ડાઉનલોડ કરો.")
         
@@ -184,3 +161,23 @@ elif menu == "📊 સ્માર્ટ પત્રક":
                     response = model.generate_content(prompt)
                     st.success("✅ અહેવાલ તૈયાર છે!")
                     st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)
+
+    elif menu == "⚙️ સેટિંગ્સ":
+        st.header("⚙️ સેટિંગ્સ")
+        tab1, tab2 = st.tabs(["🔑 પાસવર્ડ બદલો", "👤 નવો યુઝર ઉમેરો"])
+        with tab1:
+            new_password = st.text_input("નવો પાસવર્ડ", type="password")
+            if st.button("પાસવર્ડ સેવ કરો", key="btn_pass") and new_password:
+                supabase.table("school_users").update({"password": new_password}).eq("username", st.session_state.username).execute()
+                st.success("✅ પાસવર્ડ બદલાઈ ગયો છે!")
+        with tab2:
+            if st.session_state.role == "Principal":
+                n_name = st.text_input("શિક્ષકનું પૂરું નામ")
+                n_user = st.text_input("નવું યુઝરનેમ")
+                n_pass = st.text_input("નવો પાસવર્ડ", type="password")
+                if st.button("નવું એકાઉન્ટ બનાવો", key="btn_user") and n_name and n_user and n_pass:
+                    try:
+                        supabase.table("school_users").insert({"name": n_name, "username": n_user, "password": n_pass, "role": "Teacher"}).execute()
+                        st.success(f"✅ {n_name} નું એકાઉન્ટ બની ગયું છે!")
+                    except:
+                        st.error("❌ આ યુઝરનેમ પહેલેથી છે.")

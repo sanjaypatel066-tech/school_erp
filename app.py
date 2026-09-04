@@ -150,11 +150,9 @@ else:
     elif menu == "🤖 AI અહેવાલ":
         st.header("🤖 સ્માર્ટ AI અહેવાલ લેખક")
         
-        # ૧. ચાવીને બરાબર સાફ કરીને લેવા માટે (વધારાની સ્પેસ કાઢવા)
+        # સીધી અને સાદી ચાવી
         my_api_key = st.secrets["GEMINI_API_KEY"].strip()
-        
-        # ૨. Streamlit ના નેટવર્ક પ્રોબ્લેમને બાયપાસ કરવા transport="rest"
-        genai.configure(api_key=my_api_key, transport="rest")
+        genai.configure(api_key=my_api_key)
         
         topic = st.text_area("અહેવાલની ટૂંકી વિગત લખો:", placeholder="દા.ત. વિજ્ઞાન મેળો, 50 પ્રોજેક્ટ...")
         

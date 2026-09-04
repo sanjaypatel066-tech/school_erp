@@ -6,6 +6,8 @@ import datetime
 import json
 import gspread
 from google.oauth2.service_account import Credentials
+import pandas as pd
+import google.generativeai as genai
 
 # Page Config
 st.set_page_config(page_title="School ERP", layout="wide", initial_sidebar_state="expanded")
@@ -29,7 +31,7 @@ else:
     st.sidebar.title(f"નમસ્તે, {st.session_state.name}")
     st.sidebar.markdown(f"**હોદ્દો:** {st.session_state.role}")
     
-    menu = st.sidebar.radio("મેનુ પસંદ કરો", ["🏠 ડેશબોર્ડ", "📝 અહેવાલ મોડ્યુલ", "👨‍🏫 શિક્ષક પ્રોફાઇલ", "⚙️ સેટિંગ્સ"])
+    menu = st.sidebar.radio("મેનુ પસંદ કરો", ["🏠 ડેશબોર્ડ", "👨‍🏫 શિક્ષક પ્રોફાઇલ", "📝 અહેવાલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"])
     
     if st.sidebar.button("લોગ આઉટ", use_container_width=True):
         logout()
@@ -141,3 +143,44 @@ else:
                         st.success(f"✅ {n_name} નું એકાઉન્ટ બની ગયું છે!")
                     except:
                         st.error("❌ આ યુઝરનેમ પહેલેથી છે.")
+
+elif menu == "📊 સ્માર્ટ પત્રક":
+        st.header("📊 સ્માર્ટ પત્રક (1-Click Excel)")
+        st.info("કચેરીમાંથી માંગ્યા મુજબની માહિતી પર ટીક કરો અને સીધી Excel ફાઈલ ડાઉનલોડ કરો.")
+        
+        all_t = supabase.table("school_users").select("*").eq("role", "Teacher").execute().data
+        if all_t:
+            df = pd.DataFrame(all_t)
+            
+            st.write("**તમારે પત્રકમાં કઈ કઈ માહિતી જોઈએ છે? (ટીક કરો)**")
+            col1, col2, col3 = st.columns(3)
+            show_name = col1.checkbox("શિક્ષકનું નામ", value=True)
+            show_phone = col2.checkbox("મોબાઈલ નંબર", value=True)
+            show_qual = col3.checkbox("લાયકાત")
+            
+            selected_cols = []
+            if show_name: selected_cols.append('name')
+            if show_phone: selected_cols.append('phone_number')
+            if show_qual: selected_cols.append('qualification')
+            
+            if selected_cols:
+                final_df = df[selected_cols]
+                st.dataframe(final_df, use_container_width=True)
+                
+                csv = final_df.to_csv(index=False).encode('utf-8-sig')
+                st.download_button("📥 Excel ફાઈલ ડાઉનલોડ કરો", data=csv, file_name="smart_patrak.csv", mime="text/csv")
+
+    elif menu == "🤖 AI અહેવાલ":
+        st.header("🤖 સ્માર્ટ AI અહેવાલ લેખક")
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        
+        topic = st.text_area("અહેવાલની ટૂંકી વિગત લખો:", placeholder="દા.ત. વિજ્ઞાન મેળો, 50 પ્રોજેક્ટ...")
+        
+        if st.button("✨ અહેવાલ બનાવો"):
+            if topic:
+                with st.spinner("AI અહેવાલ લખી રહ્યું છે..."):
+                    model = genai.GenerativeModel('gemini-1.5-flash')
+                    prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો:\n\n{topic}"
+                    response = model.generate_content(prompt)
+                    st.success("✅ અહેવાલ તૈયાર છે!")
+                    st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)

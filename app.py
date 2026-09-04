@@ -88,7 +88,7 @@ else:
                             creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
                             client = gspread.authorize(creds)
                             
-                            sheet = client.open("શિક્ષક માહિતી").sheet1
+                            sheet = client.open_by_key("1BCu-RmpfFDixmt8IQ2B82fz3XcdOEhICG2E9_30_sQw").sheet1
                             
                             # ડેટાબેઝમાંથી બધા શિક્ષકોનો ડેટા લાવવો
                             response = supabase.table("school_users").select("*").eq("role", "Teacher").execute()

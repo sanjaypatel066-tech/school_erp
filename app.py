@@ -153,8 +153,8 @@ else:
                         
                         prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો. માત્ર અહેવાલનો મુખ્ય ભાગ જ લખો, ઉપર તારીખ કે નીચે સહી માટે જગ્યા ન છોડતા:\n\n{topic}"
                         
-                        # અહીં url માં gemini-1.5-flash-latest કરી દીધું છે
-                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={my_api_key}"
+                        # અહી ગૂગલનું સૌથી સ્ટેબલ અને યુનિવર્સલ મોડલ મૂક્યું છે
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key={my_api_key}"
                         payload = {"contents": [{"parts": [{"text": prompt}]}]}
                         
                         res = requests.post(url, json=payload)

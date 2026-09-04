@@ -160,7 +160,8 @@ else:
             if topic:
                 with st.spinner("AI અહેવાલ લખી રહ્યું છે..."):
                     try:
-                        model = genai.GenerativeModel('gemini-1.5-flash')
+                        # અહીં મોડલનું નામ બદલીને gemini-pro કરી દીધું છે
+                        model = genai.GenerativeModel('gemini-pro')
                         prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો:\n\n{topic}"
                         response = model.generate_content(prompt)
                         

@@ -146,14 +146,14 @@ else:
                 
                 csv = final_df.to_csv(index=False).encode('utf-8-sig')
                 st.download_button("📥 Excel ફાઈલ ડાઉનલોડ કરો", data=csv, file_name="smart_patrak.csv", mime="text/csv")
+                
     elif menu == "🤖 AI અહેવાલ":
         st.header("🤖 સ્માર્ટ AI અહેવાલ લેખક")
         
         # ૧. ચાવીને બરાબર સાફ કરીને લેવા માટે (વધારાની સ્પેસ કાઢવા)
         my_api_key = st.secrets["GEMINI_API_KEY"].strip()
         
-        # ૨. Streamlit ના નેટવર્ક પ્રોબ્લેમને બાયપાસ કરવા transport="rest" મૂકવું ફરજિયાત છે
-        # અને શીટ્સના એકાઉન્ટ સાથે કન્ફ્યુઝન ન થાય તે માટે સીધી ચાવી આપવી
+        # ૨. Streamlit ના નેટવર્ક પ્રોબ્લેમને બાયપાસ કરવા transport="rest"
         genai.configure(api_key=my_api_key, transport="rest")
         
         topic = st.text_area("અહેવાલની ટૂંકી વિગત લખો:", placeholder="દા.ત. વિજ્ઞાન મેળો, 50 પ્રોજેક્ટ...")
@@ -161,29 +161,16 @@ else:
         if st.button("✨ અહેવાલ બનાવો"):
             if topic:
                 with st.spinner("AI અહેવાલ લખી રહ્યું છે..."):
-                    model = genai.GenerativeModel('gemini-1.5-flash')
-                    prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો:\n\n{topic}"
-                    response = model.generate_content(prompt)
-                    
-                    st.success("✅ અહેવાલ તૈયાર છે!")
-                    st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)
-                    # 3 અલગ-અલગ મોડલના નામનું લિસ્ટ જે જાતે ચેક થશે
-                    models_to_try = ['gemini-1.5-flash', 'models/gemini-1.5-flash', 'gemini-pro']
-                    success = False
-                    
-                    for m_name in models_to_try:
-                        try:
-                            model = genai.GenerativeModel(m_name)
-                            response = model.generate_content(prompt)
-                            st.success(f"✅ અહેવાલ તૈયાર છે!")
-                            st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)
-                            success = True
-                            break  # સાચું મોડલ મળી ગયું એટલે લૂપ બંધ
-                        except:
-                            continue # જો આ મોડલ ના ચાલે તો બીજું નામ ચેક કરશે
-                            
-                    if not success:
-                        st.error("⚠️ તમારી API Key સાથે કોઈપણ AI મોડલ મેચ થતું નથી. કૃપા કરીને Google AI Studio માં 'Create Project' કરીને તદ્દન નવી ચાવી જનરેટ કરો.")
+                    try:
+                        model = genai.GenerativeModel('gemini-1.5-flash')
+                        prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો:\n\n{topic}"
+                        response = model.generate_content(prompt)
+                        
+                        st.success("✅ અહેવાલ તૈયાર છે!")
+                        st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)
+                    except Exception as e:
+                        st.error(f"⚠️ એરર: {e}")
+                        
     elif menu == "⚙️ સેટિંગ્સ":
         st.header("⚙️ સેટિંગ્સ")
         tab1, tab2 = st.tabs(["🔑 પાસવર્ડ બદલો", "👤 નવો યુઝર ઉમેરો"])

@@ -155,13 +155,26 @@ else:
         
         if st.button("✨ અહેવાલ બનાવો"):
             if topic:
-                with st.spinner("AI અહેવાલ લખી રહ્યું છે..."):
-                    model = genai.GenerativeModel('gemini-pro')
+                with st.spinner("AI અહેવાલ લખી રહ્યું છે... (યોગ્ય મોડલ શોધી રહ્યા છીએ)"):
                     prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો:\n\n{topic}"
-                    response = model.generate_content(prompt)
-                    st.success("✅ અહેવાલ તૈયાર છે!")
-                    st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)
-
+                    
+                    # 3 અલગ-અલગ મોડલના નામનું લિસ્ટ જે જાતે ચેક થશે
+                    models_to_try = ['gemini-1.5-flash', 'models/gemini-1.5-flash', 'gemini-pro']
+                    success = False
+                    
+                    for m_name in models_to_try:
+                        try:
+                            model = genai.GenerativeModel(m_name)
+                            response = model.generate_content(prompt)
+                            st.success(f"✅ અહેવાલ તૈયાર છે!")
+                            st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)
+                            success = True
+                            break  # સાચું મોડલ મળી ગયું એટલે લૂપ બંધ
+                        except:
+                            continue # જો આ મોડલ ના ચાલે તો બીજું નામ ચેક કરશે
+                            
+                    if not success:
+                        st.error("⚠️ તમારી API Key સાથે કોઈપણ AI મોડલ મેચ થતું નથી. કૃપા કરીને Google AI Studio માં 'Create Project' કરીને તદ્દન નવી ચાવી જનરેટ કરો.")
     elif menu == "⚙️ સેટિંગ્સ":
         st.header("⚙️ સેટિંગ્સ")
         tab1, tab2 = st.tabs(["🔑 પાસવર્ડ બદલો", "👤 નવો યુઝર ઉમેરો"])

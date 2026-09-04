@@ -147,17 +147,23 @@ else:
                 csv = final_df.to_csv(index=False).encode('utf-8-sig')
                 st.download_button("📥 Excel ફાઈલ ડાઉનલોડ કરો", data=csv, file_name="smart_patrak.csv", mime="text/csv")
 
-    elif menu == "🤖 AI અહેવાલ":
+   elif menu == "🤖 AI અહેવાલ":
         st.header("🤖 સ્માર્ટ AI અહેવાલ લેખક")
-        genai.configure(api_key="AQ.Ab8RN6ItYwVWCU4CQNZlF0Qc31nYsKbYrw_WsP825gauLthqBQ")
+        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
         
         topic = st.text_area("અહેવાલની ટૂંકી વિગત લખો:", placeholder="દા.ત. વિજ્ઞાન મેળો, 50 પ્રોજેક્ટ...")
         
         if st.button("✨ અહેવાલ બનાવો"):
             if topic:
-                with st.spinner("AI અહેવાલ લખી રહ્યું છે... (યોગ્ય મોડલ શોધી રહ્યા છીએ)"):
+                with st.spinner("AI અહેવાલ લખી રહ્યું છે..."):
+                    # કોઈ લૂપ કે એરર છુપાવવાનો કોડ નથી, સીધો એટેક
+                    model = genai.GenerativeModel('gemini-1.5-flash')
                     prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો:\n\n{topic}"
+                    response = model.generate_content(prompt)
                     
+                    st.success("✅ અહેવાલ તૈયાર છે!")
+                    st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)
+           
                     # 3 અલગ-અલગ મોડલના નામનું લિસ્ટ જે જાતે ચેક થશે
                     models_to_try = ['gemini-1.5-flash', 'models/gemini-1.5-flash', 'gemini-pro']
                     success = False

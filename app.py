@@ -157,15 +157,27 @@ else:
         
         if st.button("✨ અહેવાલ બનાવો"):
             if topic:
-                with st.spinner("AI અહેવાલ લખી રહ્યું છે..."):
+                with st.spinner("AI મોડલ જાતે જ શોધીને અહેવાલ લખી રહ્યું છે..."):
                     try:
-                        # માત્ર અહીં મોડલનું નામ અપડેટ કર્યું છે
-                        model = genai.GenerativeModel('gemini-1.5-flash')
-                        prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો:\n\n{topic}"
-                        response = model.generate_content(prompt)
-                        
-                        st.success("✅ અહેવાલ તૈયાર છે!")
-                        st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)
+                        # ૧. ગૂગલમાંથી જાતે જ એક્ટિવ મોડલ શોધી કાઢશે
+                        valid_model = None
+                        for m in genai.list_models():
+                            if 'generateContent' in m.supported_generation_methods:
+                                valid_model = m.name
+                                if 'flash' in valid_model.lower(): 
+                                    break # જો લેટેસ્ટ મોડલ મળે તો તેને જ પકડશે
+                                    
+                        if valid_model:
+                            # ૨. જે મોડલ મળ્યું તેનાથી અહેવાલ બનાવશે
+                            model = genai.GenerativeModel(valid_model)
+                            prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો:\n\n{topic}"
+                            response = model.generate_content(prompt)
+                            
+                            st.success("✅ અહેવાલ તૈયાર છે!")
+                            st.text_area("ફાઇનલ અહેવાલ:", value=response.text, height=350)
+                        else:
+                            st.error("⚠️ એરર: તમારા એકાઉન્ટમાં કોઈ મોડલ એક્ટિવ નથી.")
+                            
                     except Exception as e:
                         st.error(f"⚠️ એરર: {e}")
                         

@@ -81,7 +81,7 @@ else:
                             "qualification": new_qual, "birthdate": str(new_bdate), "joining_date": str(new_jdate)
                         }).eq("id", selected_teacher['id']).execute()
                         
-                        # ૨. ગૂગલ શીટ લાઈવ સિંક
+# ૨. ગૂગલ શીટ લાઈવ સિંક
                         try:
                             creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
                             scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -89,18 +89,30 @@ else:
                             client = gspread.authorize(creds)
                             
                             sheet = client.open("શિક્ષક માહિતી").sheet1
-                            sheet.clear() # જૂનો ડેટા ભૂંસીને ફ્રેશ કરશે
-                            sheet.append_row(["શિક્ષકનું નામ", "મોબાઈલ નંબર", "આધારકાર્ડ નંબર", "લાયકાત", "જન્મ તારીખ", "જોડાવાની તારીખ"])
                             
-                            all_t = supabase.table("school_users").select("*").eq("role", "Teacher").execute().data
-                            rows = [[t.get('name',''), t.get('phone_number',''), t.get('aadhaar_number',''), t.get('qualification',''), t.get('birthdate',''), t.get('joining_date','')] for t in all_t]
-                            if rows:
-                                sheet.append_rows(rows)
+                            # ડેટાબેઝમાંથી બધા શિક્ષકોનો ડેટા લાવવો
+                            response = supabase.table("school_users").select("*").eq("role", "Teacher").execute()
+                            all_t = response.data
+                            
+                            # એકસાથે પત્રક (Table) તૈયાર કરવું
+                            all_data = [["શિક્ષકનું નામ", "મોબાઈલ નંબર", "આધારકાર્ડ નંબર", "લાયકાત", "જન્મ તારીખ", "જોડાવાની તારીખ"]]
+                            for t in all_t:
+                                all_data.append([t.get('name',''), t.get('phone_number',''), t.get('aadhaar_number',''), t.get('qualification',''), t.get('birthdate',''), t.get('joining_date','')])
                                 
-                            st.success("✅ પ્રોફાઇલ અપડેટ થઈ ગઈ છે અને Google Sheet માં Live Sync થઈ ગઈ છે!")
+                            sheet.clear()
+                            
+                            # લાઈબ્રેરીના જૂના/નવા વર્ઝન મુજબ ડેટા લખવો
+                            try:
+                                sheet.update(values=all_data, range_name="A1")
+                            except TypeError:
+                                sheet.update("A1", all_data)
+                                
+                            st.success("✅ પ્રોફાઇલ સેવ થઈ ગઈ છે અને Google Sheet માં ડેટા Live Sync થઈ ગયો છે!")
                         except Exception as e:
-                            st.success("✅ પ્રોફાઇલ સોફ્ટવેરમાં સેવ થઈ ગઈ છે.")
-                            st.error(f"⚠️ ગૂગલ શીટમાં કનેક્ટ થવામાં ભૂલ (સિક્રેટ કી અથવા નામ ચેક કરો): {e}")
+                            if "200" in str(e):
+                                st.success("✅ ડેટા ગુગલ શીટમાં પહોંચી ગયો છે! (તમારી ગૂગલ શીટ ચેક કરો)")
+                            else:
+                                st.error(f"⚠️ ગૂગલ શીટ એરર: {e}")
             else:
                 st.warning("કોઈ શિક્ષક ઉમેરેલ નથી.")
         else:

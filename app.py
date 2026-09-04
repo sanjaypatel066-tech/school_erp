@@ -149,9 +149,12 @@ else:
             if topic:
                 with st.spinner("તમારો ફાઇનલ લેટરપેડ અહેવાલ બની રહ્યો છે..."):
                     try:
+                        import requests
+                        
                         prompt = f"તમે ગુજરાતની પ્રાથમિક શાળાના શિક્ષક છો. નીચેની માહિતી પરથી શુદ્ધ ગુજરાતીમાં પ્રોફેશનલ અહેવાલ તૈયાર કરો. માત્ર અહેવાલનો મુખ્ય ભાગ જ લખો, ઉપર તારીખ કે નીચે સહી માટે જગ્યા ન છોડતા:\n\n{topic}"
                         
-                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={my_api_key}"
+                        # અહીં url માં gemini-1.5-flash-latest કરી દીધું છે
+                        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={my_api_key}"
                         payload = {"contents": [{"parts": [{"text": prompt}]}]}
                         
                         res = requests.post(url, json=payload)

@@ -148,7 +148,14 @@ else:
                 st.download_button("📥 Excel ફાઈલ ડાઉનલોડ કરો", data=csv, file_name="smart_patrak.csv", mime="text/csv")
     elif menu == "🤖 AI અહેવાલ":
         st.header("🤖 સ્માર્ટ AI અહેવાલ લેખક")
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+        
+        # ૧. ચાવીને બરાબર સાફ કરીને લેવા માટે (વધારાની સ્પેસ કાઢવા)
+        my_api_key = st.secrets["GEMINI_API_KEY"].strip()
+        
+        # ૨. Streamlit ના નેટવર્ક પ્રોબ્લેમને બાયપાસ કરવા transport="rest" મૂકવું ફરજિયાત છે
+        # અને શીટ્સના એકાઉન્ટ સાથે કન્ફ્યુઝન ન થાય તે માટે સીધી ચાવી આપવી
+        genai.configure(api_key=my_api_key, transport="rest")
+        
         topic = st.text_area("અહેવાલની ટૂંકી વિગત લખો:", placeholder="દા.ત. વિજ્ઞાન મેળો, 50 પ્રોજેક્ટ...")
         
         if st.button("✨ અહેવાલ બનાવો"):

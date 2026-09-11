@@ -208,21 +208,51 @@ else:
                         st.error(f"⚠️ કોડ એરર: {e}")
                         
     elif menu == "⚙️ સેટિંગ્સ":
-        st.header("⚙️ સેટિંગ્સ")
-        tab1, tab2 = st.tabs(["🔑 પાસવર્ડ બદલો", "👤 નવો યુઝર ઉમેરો"])
+        st.header("⚙️ સેટિંગ્સ અને યુઝર મેનેજમેન્ટ")
+        
+        tab1, tab2 = st.tabs(["🔑 પાસવર્ડ બદલો", "👤 નવો શિક્ષક ઉમેરો"])
+        
+        # ૧. પાસવર્ડ બદલવાની સુવિધા (શિક્ષક અને આચાર્ય બંને માટે)
         with tab1:
-            new_password = st.text_input("નવો પાસવર્ડ", type="password")
-            if st.button("પાસવર્ડ સેવ કરો", key="btn_pass") and new_password:
-                supabase.table("school_users").update({"password": new_password}).eq("username", st.session_state.username).execute()
-                st.success("✅ પાસવર્ડ બદલાઈ ગયો છે!")
+            st.subheader("તમારો પાસવર્ડ અપડેટ કરો")
+            new_password = st.text_input("નવો પાસવર્ડ દાખલ કરો", type="password")
+            if st.button("પાસવર્ડ સેવ કરો", key="btn_pass"):
+                if new_password:
+                    try:
+                        supabase.table("school_users").update({"password": new_password}).eq("username", st.session_state.username).execute()
+                        st.success("✅ તમારો નવો પાસવર્ડ સફળતાપૂર્વક સેવ થઈ ગયો છે!")
+                    except Exception as e:
+                        st.error(f"⚠️ એરર: {e}")
+                else:
+                    st.warning("કૃપા કરીને નવો પાસવર્ડ લખો.")
+
+        # ૨. નવા શિક્ષકનું એકાઉન્ટ બનાવવાની સુવિધા (માત્ર આચાર્ય માટે)
         with tab2:
             if st.session_state.role == "Principal":
-                n_name = st.text_input("શિક્ષકનું પૂરું નામ")
-                n_user = st.text_input("નવું યુઝરનેમ")
-                n_pass = st.text_input("નવો પાસવર્ડ", type="password")
-                if st.button("નવું એકાઉન્ટ બનાવો", key="btn_user") and n_name and n_user and n_pass:
-                    try:
-                        supabase.table("school_users").insert({"name": n_name, "username": n_user, "password": n_pass, "role": "Teacher"}).execute()
-                        st.success(f"✅ {n_name} નું એકાઉન્ટ બની ગયું છે!")
+                st.subheader("નવા શિક્ષકનું લોગિન બનાવો")
+                # ફોર્મનો ઉપયોગ જેથી સબમિટ કર્યા પછી ખાનાં ઓટોમેટિક ખાલી થઈ જાય (clear_on_submit=True)
+                with st.form("add_new_user_form", clear_on_submit=True):
+                    n_name = st.text_input("શિક્ષકનું પૂરું નામ")
+                    n_user = st.text_input("નવું યુઝરનેમ (લોગિન માટે)")
+                    n_pass = st.text_input("નવો પાસવર્ડ", type="password")
+                    
+                    submitted = st.form_submit_button("નવું એકાઉન્ટ બનાવો")
+                    
+                    if submitted:
+                        if n_name and n_user and n_pass:
+                            try:
+                                supabase.table("school_users").insert({
+                                    "name": n_name, 
+                                    "username": n_user, 
+                                    "password": n_pass, 
+                                    "role": "Teacher"
+                                }).execute()
+                                st.success(f"✅ {n_name} નું એકાઉન્ટ સફળતાપૂર્વક બની ગયું છે!")
+                            except Exception as e:
+                                st.error("❌ આ યુઝરનેમ પહેલેથી ડેટાબેઝમાં છે. કૃપા કરીને બીજું યુઝરનેમ ટ્રાય કરો.")
+                        else:
+                            st.warning("⚠️ કૃપા કરીને બધી વિગતો ભરો.")
+            else:
+                st.info("🔒 નવા શિક્ષકને ઉમેરવાનો અધિકાર માત્ર આચાર્યશ્રી પાસે જ છે.")
                     except:
                         st.error("❌ આ યુઝરનેમ પહેલેથી છે.")

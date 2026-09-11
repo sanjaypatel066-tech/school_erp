@@ -207,12 +207,11 @@ else:
                     except Exception as e:
                         st.error(f"⚠️ કોડ એરર: {e}")
                         
-    elif menu == "⚙️ સેટિંગ્સ":
+elif menu == "⚙️ સેટિંગ્સ":
         st.header("⚙️ સેટિંગ્સ અને યુઝર મેનેજમેન્ટ")
         
         tab1, tab2 = st.tabs(["🔑 પાસવર્ડ બદલો", "👤 નવો શિક્ષક ઉમેરો"])
         
-        # ૧. પાસવર્ડ બદલવાની સુવિધા (શિક્ષક અને આચાર્ય બંને માટે)
         with tab1:
             st.subheader("તમારો પાસવર્ડ અપડેટ કરો")
             new_password = st.text_input("નવો પાસવર્ડ દાખલ કરો", type="password")
@@ -226,11 +225,9 @@ else:
                 else:
                     st.warning("કૃપા કરીને નવો પાસવર્ડ લખો.")
 
-        # ૨. નવા શિક્ષકનું એકાઉન્ટ બનાવવાની સુવિધા (માત્ર આચાર્ય માટે)
         with tab2:
             if st.session_state.role == "Principal":
                 st.subheader("નવા શિક્ષકનું લોગિન બનાવો")
-                # ફોર્મનો ઉપયોગ જેથી સબમિટ કર્યા પછી ખાનાં ઓટોમેટિક ખાલી થઈ જાય (clear_on_submit=True)
                 with st.form("add_new_user_form", clear_on_submit=True):
                     n_name = st.text_input("શિક્ષકનું પૂરું નામ")
                     n_user = st.text_input("નવું યુઝરનેમ (લોગિન માટે)")
@@ -254,5 +251,3 @@ else:
                             st.warning("⚠️ કૃપા કરીને બધી વિગતો ભરો.")
             else:
                 st.info("🔒 નવા શિક્ષકને ઉમેરવાનો અધિકાર માત્ર આચાર્યશ્રી પાસે જ છે.")
-                    except:
-                        st.error("❌ આ યુઝરનેમ પહેલેથી છે.")

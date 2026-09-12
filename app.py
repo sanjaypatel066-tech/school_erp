@@ -88,22 +88,31 @@ else:
 
                         if len(setup_data) >= 2:
                             questions_list = []
-                            # અહી 0 ની જગ્યાએ 1 કર્યું છે જેથી Column A સ્કીપ થાય
                             for col_idx in range(1, len(setup_data[0])):
                                 q_name = get_val(0, col_idx)
                                 if q_name != "":
+                                    # Row 12 (Index 11) માંથી પ્રશ્નનો ક્રમ લેવો (ખાલી હોય તો 999)
+                                    order_val = get_val(11, col_idx, "999")
+                                    try: order_num = int(order_val)
+                                    except: order_num = 999
+                                    
                                     questions_list.append({
                                         "name": q_name,
                                         "type": get_val(1, col_idx).split()[0] if get_val(1, col_idx) else "1",
                                         "options": get_val(2, col_idx),
                                         "tab": get_val(3, col_idx, "સામાન્ય માહિતી") or "સામાન્ય માહિતી",
                                         "help": get_val(4, col_idx),
-                                        "mandatory": get_val(5, col_idx).lower() in ['હા', 'yes']
+                                        "mandatory": get_val(5, col_idx).lower() in ['હા', 'yes'],
+                                        "order": order_num
                                     })
+                            
+                            # પ્રશ્નોને આપેલા ક્રમ મુજબ ગોઠવવા
+                            questions_list = sorted(questions_list, key=lambda x: x['order'])
                             
                             tab_new, tab_edit = st.tabs(["📝 નવી એન્ટ્રી", "✏️ જૂનો ડેટા જુઓ/સુધારો"])
                             data_sheet_name = "Data 2025-26"
                             
+                            # TAB 1: નવી એન્ટ્રી
                             with tab_new:
                                 unique_tabs = list(dict.fromkeys([q['tab'] for q in questions_list if q['name'] not in ['Timestamp', 'શિક્ષકનું નામ']]))
                                 
@@ -113,7 +122,7 @@ else:
                                     
                                     for q in questions_list:
                                         if q['name'] == 'Timestamp':
-                                            form_answers[q['name']] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                                            form_answers[q['name']] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                                         elif q['name'] == 'શિક્ષકનું નામ':
                                             form_answers[q['name']] = st.session_state.name
                                             
@@ -129,7 +138,8 @@ else:
                                                         if q['type'] == "1":
                                                             form_answers[q['name']] = st.text_input(display_name, help=q['help'])
                                                         elif q['type'] == "3":
-                                                            form_answers[q['name']] = st.number_input(display_name, help=q['help'], step=1, min_value=0)
+                                                            # value=None વાપરવાથી ખાલી બોક્સ ઝીરો નહિ બતાવે
+                                                            form_answers[q['name']] = st.number_input(display_name, help=q['help'], step=1, min_value=0, value=None)
                                                         elif q['type'] == "4":
                                                             form_answers[q['name']] = st.date_input(display_name, help=q['help'])
                                                         elif q['type'] == "6":
@@ -145,7 +155,7 @@ else:
                                     submitted = st.form_submit_button("🚀 ડેટા સેવ કરો")
                                     
                                     if submitted:
-                                        missing_fields = [q['name'] for q in questions_list if q['mandatory'] and (not form_answers.get(q['name']) and form_answers.get(q['name']) != 0)]
+                                        missing_fields = [q['name'] for q in questions_list if q['mandatory'] and (form_answers.get(q['name']) is None or str(form_answers.get(q['name'])).strip() == "")]
                                         if missing_fields:
                                             st.error(f"⚠️ કૃપા કરીને ફરજિયાત ખાનાં ભરો: {', '.join(missing_fields)}")
                                         else:
@@ -153,12 +163,14 @@ else:
                                                 data_worksheet = sheet.worksheet(data_sheet_name)
                                             except gspread.exceptions.WorksheetNotFound:
                                                 data_worksheet = sheet.add_worksheet(title=data_sheet_name, rows="1000", cols="20")
-                                                data_worksheet.append_row([q['name'] for q in questions_list])
+                                                data_worksheet.append_row([q['name'] for q in questions_list], value_input_option='USER_ENTERED')
                                             
-                                            row_data = [str(form_answers.get(q['name'], "")) for q in questions_list]
-                                            data_worksheet.append_row(row_data)
+                                            # ડેટા સેવ કરતી વખતે USER_ENTERED જેથી તારીખ અને આંકડાનું ફોર્મેટ ન બગડે
+                                            row_data = ["" if form_answers.get(q['name']) is None else str(form_answers.get(q['name'])) for q in questions_list]
+                                            data_worksheet.append_row(row_data, value_input_option='USER_ENTERED')
                                             st.success("✅ તમારો ડેટા સીધો Google Sheet માં સફળતાપૂર્વક સેવ થઈ ગયો છે!")
 
+                            # TAB 2: ડેટા એડિટ
                             with tab_edit:
                                 try:
                                     data_ws = sheet.worksheet(data_sheet_name)

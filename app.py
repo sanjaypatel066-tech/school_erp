@@ -83,7 +83,11 @@ else:
             col1.metric("તમારા બનાવેલા અહેવાલો", "05")
             col2.metric("તમારો આજનો તાસ", "ધોરણ ૬, ૭")
             
-    with st.spinner("તમારું ફોર્મ અને શીટ્સ તૈયાર થઈ રહી છે..."):
+    elif menu == "✨ સ્માર્ટ એન્ટ્રી":
+        st.header("✨ સ્માર્ટ ડાયનેમિક એન્ટ્રી ફોર્મ")
+        st.markdown("આ ફોર્મ તમારી Google Sheet ના 'Setup' માંથી ઓટોમેટિક બની રહ્યું છે!")
+        
+        with st.spinner("તમારું ફોર્મ અને શીટ્સ તૈયાર થઈ રહી છે..."):
             try:
                 raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
                 creds_dict = json.loads(raw_creds, strict=False) 
@@ -92,20 +96,15 @@ else:
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
                 client = gspread.authorize(creds)
                 
-                # ૧. સર્વિસ એકાઉન્ટ સાથે શેર કરેલી બધી શીટ્સ Fetch કરો
+                # બધી શીટ્સ Fetch કરવાનો કોડ
                 all_sheets = client.list_spreadsheet_files()
                 
                 if all_sheets:
-                    # શીટના નામ અને ID નું લિસ્ટ બનાવો
                     sheet_options = {s['name']: s['id'] for s in all_sheets}
-                    
-                    # ૨. ડ્રોપડાઉનમાં શીટ પસંદ કરવાનો વિકલ્પ
                     selected_sheet_name = st.selectbox("📂 ડેટા એન્ટ્રી માટે Google Sheet પસંદ કરો:", list(sheet_options.keys()))
                     selected_sheet_id = sheet_options[selected_sheet_name]
                     
                     st.markdown("---")
-                    
-                    # ૩. માત્ર પસંદ કરેલી શીટ જ ઓપન કરો
                     sheet = client.open_by_key(selected_sheet_id)
                     
                     try:
@@ -115,7 +114,6 @@ else:
                         if len(setup_data) >= 11:
                             with st.form("dynamic_magic_form", clear_on_submit=True):
                                 st.subheader(f"📝 {setup_data[0][1]} એન્ટ્રી")
-                                
                                 form_answers = {}
                                 
                                 for col_idx in range(1, len(setup_data[0])):
@@ -140,13 +138,12 @@ else:
                         else:
                             st.warning("⚠️ આ શીટના 'Setup' પાનામાં પૂરી માહિતી નથી. કૃપા કરીને Row 1 થી 11 ભરો.")
                     except gspread.exceptions.WorksheetNotFound:
-                        st.error("⚠️ આ ગુગલ શીટમાં 'Setup' નામનું પાનું (Tab) મળતું નથી. કૃપા કરીને નવું પાનું બનાવી તેનું નામ 'Setup' રાખો.")
-                        
+                        st.error("⚠️ આ ગુગલ શીટમાં 'Setup' નામનું પાનું (Tab) મળતું નથી.")
                 else:
                     st.info("⚠️ હજુ સુધી કોઈ ગૂગલ શીટ જોડાયેલી નથી.")
-                    
             except Exception as e:
                 st.error(f"એરર આવી છે: {e}")
+
     elif menu == "📝 અહેવાલ મોડ્યુલ":
         show_report_module()
         
@@ -155,7 +152,7 @@ else:
         if st.session_state.role == "Principal":
             response = supabase.table("school_users").select("*").eq("role", "Teacher").execute()
             teachers = response.data
-            if len(teachers) > 0:
+            if teachers:
                 teacher_names = {t['name']: t for t in teachers}
                 selected_name = st.selectbox("શિક્ષક પસંદ કરો:", list(teacher_names.keys()))
                 selected_teacher = teacher_names[selected_name]
@@ -167,8 +164,10 @@ else:
                     new_aadhaar = col2.text_input("આધારકાર્ડ નંબર", value=selected_teacher.get('aadhaar_number') or "")
                     new_qual = st.text_input("શૈક્ષણિક લાયકાત", value=selected_teacher.get('qualification') or "")
                     
-                    b_date = datetime.datetime.strptime(selected_teacher['birthdate'], "%Y-%m-%d").date() if selected_teacher.get('birthdate') else datetime.date(1990, 1, 1)
-                    j_date = datetime.datetime.strptime(selected_teacher['joining_date'], "%Y-%m-%d").date() if selected_teacher.get('joining_date') else datetime.date.today()
+                    b_date_str = selected_teacher.get('birthdate')
+                    j_date_str = selected_teacher.get('joining_date')
+                    b_date = datetime.datetime.strptime(b_date_str, "%Y-%m-%d").date() if b_date_str else datetime.date(1990, 1, 1)
+                    j_date = datetime.datetime.strptime(j_date_str, "%Y-%m-%d").date() if j_date_str else datetime.date.today()
                     
                     col3, col4 = st.columns(2)
                     new_bdate = col3.date_input("જન્મ તારીખ", value=b_date)
@@ -190,11 +189,11 @@ else:
 
     elif menu == "📊 સ્માર્ટ પત્રક":
         st.header("📊 સ્માર્ટ પત્રક")
-        st.info("જૂનો કોડ અહીં યથાવત છે.")
+        st.info("સ્માર્ટ પત્રક મોડ્યુલ અહીં આવશે.")
 
     elif menu == "🤖 AI અહેવાલ":
         st.header("🤖 સ્માર્ટ AI અહેવાલ લેખક")
-        st.info("જૂનો કોડ અહીં યથાવત છે.")
+        st.info("AI મોડ્યુલ અહીં આવશે.")
 
     elif menu == "⚙️ સેટિંગ્સ":
         st.header("⚙️ સેટિંગ્સ અને યુઝર મેનેજમેન્ટ")

@@ -12,26 +12,52 @@ import requests
 # Page Config
 st.set_page_config(page_title="School ERP", layout="wide", initial_sidebar_state="expanded")
 
-# Custom CSS
+# Custom CSS (Premium Modern Look)
 st.markdown("""
     <style>
-    .main { background-color: #F6F8FA; }
-    .stButton>button { border-radius: 8px; background-color: #2E5077; color: white; }
-    [data-testid="stSidebar"] { background-color: #FFFFFF; border-right: 1px solid #E0E0E0; }
+    .main { background-color: #F4F7FE; }
+    
+    /* Input Box Design */
+    div[data-baseweb="input"], div[data-baseweb="select"] {
+        border-radius: 12px;
+        border: 1.5px solid #E2E8F0;
+        background-color: #F8FAFC;
+        transition: all 0.3s ease;
+    }
+    div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within {
+        border-color: #4318FF;
+        box-shadow: 0 0 0 3px rgba(67, 24, 255, 0.15);
+        background-color: #FFFFFF;
+    }
+    
+    /* Form Card Design */
+    .stForm {
+        background-color: #FFFFFF;
+        padding: 30px;
+        border-radius: 20px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+        border-top: 6px solid #4318FF;
+    }
+    
+    /* Magic Submit Button */
+    .stButton > button {
+        width: 100%;
+        background: linear-gradient(135deg, #4318FF 0%, #868CFF 100%);
+        color: white;
+        border-radius: 14px;
+        padding: 12px;
+        font-size: 18px;
+        font-weight: bold;
+        border: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .stButton > button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 20px rgba(67, 24, 255, 0.4);
+    }
     </style>
     """, unsafe_allow_html=True)
-
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-
-if not st.session_state.logged_in:
-    login_form()
-else:
-    st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2991/2991148.png", width=100)
-    st.sidebar.title(f"નમસ્તે, {st.session_state.name}")
-    st.sidebar.markdown(f"**હોદ્દો:** {st.session_state.role}")
-    
-    menu = st.sidebar.radio("મેનુ પસંદ કરો", ["🏠 ડેશબોર્ડ", "👨‍🏫 શિક્ષક પ્રોફાઇલ", "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"])
+    menu = st.sidebar.radio("મેનુ પસંદ કરો", ["🏠 ડેશબોર્ડ", "✨ સ્માર્ટ એન્ટ્રી", "👨‍🏫 શિક્ષક પ્રોફાઇલ", "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"])
     
     if st.sidebar.button("લોગ આઉટ", use_container_width=True):
         logout()
@@ -48,7 +74,61 @@ else:
             col1, col2 = st.columns(2)
             col1.metric("તમારા બનાવેલા અહેવાલો", "05")
             col2.metric("તમારો આજનો તાસ", "ધોરણ ૬, ૭")
-            
+    elif menu == "✨ સ્માર્ટ એન્ટ્રી":
+        st.header("✨ સ્માર્ટ ડાયનેમિક એન્ટ્રી ફોર્મ")
+        st.markdown("આ ફોર્મ તમારી Google Sheet ના 'Setup' માંથી ઓટોમેટિક બની રહ્યું છે!")
+        
+        with st.spinner("તમારું ફોર્મ તૈયાર થઈ રહ્યું છે..."):
+            try:
+                # 1. ગુગલ શીટ સાથે કનેક્શન (તમારો જૂનો કી-કોડ)
+                creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
+                scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+                creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+                client = gspread.authorize(creds)
+                
+                # 2. Setup શીટ વાંચવી
+                sheet = client.open_by_key("1BCu-RmpfFDixmt8IQ2B82fz3XcdOEhICG2E9_30_sQw")
+                setup_sheet = sheet.worksheet("Setup")
+                setup_data = setup_sheet.get_all_values()
+                
+                # જો ડેટા હોય તો ફોર્મ બનાવો
+                if len(setup_data) >= 11:
+                    with st.form("dynamic_magic_form", clear_on_submit=True):
+                        st.subheader(f"📝 {setup_data[0][1]} એન્ટ્રી") # હેડિંગ
+                        
+                        form_answers = {}
+                        
+                        # Col B (index 1) થી આગળના બધા પ્રશ્નો લૂપમાં ફેરવો
+                        for col_idx in range(1, len(setup_data[0])):
+                            question = setup_data[0][col_idx]
+                            q_type = setup_data[1][col_idx]
+                            help_text = setup_data[4][col_idx]
+                            
+                            # પ્રશ્ન ખાલી ન હોય તો જ ખાનું બનાવવું
+                            if question.strip() != "":
+                                # 1 = ટૂંકું લખાણ (સામાન્ય કીબોર્ડ)
+                                if q_type == "1":
+                                    form_answers[question] = st.text_input(question, help=help_text)
+                                    
+                                # 3 = આંકડા (મોબાઈલમાં ઓટોમેટિક Number કીબોર્ડ ખુલશે)
+                                elif q_type == "3":
+                                    form_answers[question] = st.number_input(question, help=help_text, step=1, min_value=0)
+                                    
+                                # 4 = તારીખ (કેલેન્ડર)
+                                elif q_type == "4":
+                                    form_answers[question] = st.date_input(question, help=help_text)
+                        
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        submitted = st.form_submit_button("🚀 ડેટા સેવ કરો")
+                        
+                        if submitted:
+                            st.success("✅ તમારો ડેટા સફળતાપૂર્વક લેવાયો! (હવે આપણે આને 'Data' શીટમાં સેવ કરતા શીખીશું)")
+                            st.json(form_answers) # અત્યારે ચેક કરવા માટે ડેટા સ્ક્રીન પર બતાવશે
+                else:
+                    st.warning("⚠️ Setup શીટમાં પૂરી માહિતી નથી. કૃપા કરીને Row 1 થી 11 ભરો.")
+                    
+            except Exception as e:
+                st.error(f"એરર આવી છે: {e}")        
     elif menu == "📝 અહેવાલ મોડ્યુલ":
         show_report_module()
         

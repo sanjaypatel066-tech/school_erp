@@ -89,7 +89,11 @@ else:
         
         with st.spinner("તમારું ફોર્મ તૈયાર થઈ રહ્યું છે..."):
             try:
-                creds_dict = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
+                # ગુગલ સિક્રેટ્સ વાંચવાનો નવો અને સુરક્ષિત કોડ
+                raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
+                # strict=False ઉમેરવાથી 'Invalid control character' વાળી એરર બાયપાસ થઈ જશે
+                creds_dict = json.loads(raw_creds, strict=False) 
+                
                 scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
                 client = gspread.authorize(creds)

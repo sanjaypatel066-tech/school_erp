@@ -88,7 +88,8 @@ else:
 
                         if len(setup_data) >= 2:
                             questions_list = []
-                            for col_idx in range(0, len(setup_data[0])):
+                            # અહી 0 ની જગ્યાએ 1 કર્યું છે જેથી Column A સ્કીપ થાય
+                            for col_idx in range(1, len(setup_data[0])):
                                 q_name = get_val(0, col_idx)
                                 if q_name != "":
                                     questions_list.append({
@@ -103,7 +104,6 @@ else:
                             tab_new, tab_edit = st.tabs(["📝 નવી એન્ટ્રી", "✏️ જૂનો ડેટા જુઓ/સુધારો"])
                             data_sheet_name = "Data 2025-26"
                             
-                            # TAB 1: નવી એન્ટ્રી
                             with tab_new:
                                 unique_tabs = list(dict.fromkeys([q['tab'] for q in questions_list if q['name'] not in ['Timestamp', 'શિક્ષકનું નામ']]))
                                 
@@ -159,7 +159,6 @@ else:
                                             data_worksheet.append_row(row_data)
                                             st.success("✅ તમારો ડેટા સીધો Google Sheet માં સફળતાપૂર્વક સેવ થઈ ગયો છે!")
 
-                            # TAB 2: ડેટા એડિટ
                             with tab_edit:
                                 try:
                                     data_ws = sheet.worksheet(data_sheet_name)
@@ -185,7 +184,6 @@ else:
                                                     
                                             if st.form_submit_button("💾 સુધારા સેવ કરો"):
                                                 update_data = [edit_answers.get(c, "") for c in all_records[0]]
-                                                # Update row (index + 2 because API is 1-based and row 1 is header)
                                                 sheet.values_update(
                                                     f"{data_sheet_name}!A{selected_idx + 2}:Z{selected_idx + 2}",
                                                     params={'valueInputOption': 'USER_ENTERED'},

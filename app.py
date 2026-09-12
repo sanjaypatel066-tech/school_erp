@@ -8,7 +8,6 @@ import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
 
-# 1. Page Config & Premium CSS
 st.set_page_config(page_title="School ERP", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
@@ -27,21 +26,15 @@ st.markdown("""
         width: 100%; background: linear-gradient(135deg, #4318FF 0%, #868CFF 100%); color: white; border-radius: 14px; padding: 12px; font-size: 18px; font-weight: bold; border: none; transition: transform 0.2s ease;
     }
     .stButton > button:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(67, 24, 255, 0.4); }
-    /* Tab Design Enhancement */
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; }
-    .stTabs [data-baseweb="tab"] { border-radius: 8px 8px 0 0; padding: 10px 20px; background-color: #E2E8F0; }
-    .stTabs [aria-selected="true"] { background-color: #4318FF; color: white !important; }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. Login Management
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     login_form()
 else:
-    # 3. Sidebar Menu
     st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2991/2991148.png", width=100)
     st.sidebar.title(f"નમસ્તે, {st.session_state.name}")
     st.sidebar.markdown(f"**હોદ્દો:** {st.session_state.role}")
@@ -64,20 +57,17 @@ else:
             col1.metric("તમારા બનાવેલા અહેવાલો", "05")
             col2.metric("તમારો આજનો તાસ", "ધોરણ ૬, ૭")
             
-    # 4. MASTER SMART ENTRY LOGIC
     elif menu == "✨ સ્માર્ટ એન્ટ્રી":
         st.header("✨ સ્માર્ટ ડાયનેમિક એન્ટ્રી ફોર્મ")
         
         with st.spinner("તમારું ફોર્મ અને ડેટાબેઝ તૈયાર થઈ રહ્યા છે..."):
             try:
-                # Google Sheets Connection
                 raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
                 creds_dict = json.loads(raw_creds, strict=False) 
                 scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
                 client = gspread.authorize(creds)
                 
-                # Fetching all available sheets dynamically
                 all_sheets = client.list_spreadsheet_files()
                 
                 if all_sheets:
@@ -92,88 +82,121 @@ else:
                         setup_sheet = sheet.worksheet("Setup")
                         setup_data = setup_sheet.get_all_values()
                         
-                        # Data Extraction Logic (Safe Read)
                         def get_val(row_idx, col_idx, default=""):
-                            try:
-                                return str(setup_data[row_idx][col_idx]).strip()
-                            except IndexError:
-                                return default
+                            try: return str(setup_data[row_idx][col_idx]).strip()
+                            except IndexError: return default
 
-                        if len(setup_data) >= 2: # ઓછામાં ઓછી ૨ લાઈન હોવી જોઈએ (પ્રશ્ન અને કોડ)
-                            # વિભાગો (Tabs) અલગ તારવવા (Row 4 મુજબ)
+                        if len(setup_data) >= 2:
                             questions_list = []
-                            for col_idx in range(1, len(setup_data[0])):
+                            for col_idx in range(0, len(setup_data[0])):
                                 q_name = get_val(0, col_idx)
                                 if q_name != "":
-                                    q_tab = get_val(3, col_idx, "સામાન્ય માહિતી")
-                                    if q_tab == "": q_tab = "સામાન્ય માહિતી"
-                                    
                                     questions_list.append({
-                                        "col_idx": col_idx,
                                         "name": q_name,
                                         "type": get_val(1, col_idx).split()[0] if get_val(1, col_idx) else "1",
                                         "options": get_val(2, col_idx),
-                                        "tab": q_tab,
+                                        "tab": get_val(3, col_idx, "સામાન્ય માહિતી") or "સામાન્ય માહિતી",
                                         "help": get_val(4, col_idx),
                                         "mandatory": get_val(5, col_idx).lower() in ['હા', 'yes']
                                     })
                             
-                            unique_tabs = list(dict.fromkeys([q['tab'] for q in questions_list]))
+                            tab_new, tab_edit = st.tabs(["📝 નવી એન્ટ્રી", "✏️ જૂનો ડેટા જુઓ/સુધારો"])
+                            data_sheet_name = "Data 2025-26"
                             
-                            with st.form("dynamic_magic_form", clear_on_submit=True):
-                                st.subheader(f"📝 {selected_sheet_name} એન્ટ્રી")
-                                form_answers = {}
+                            # TAB 1: નવી એન્ટ્રી
+                            with tab_new:
+                                unique_tabs = list(dict.fromkeys([q['tab'] for q in questions_list if q['name'] not in ['Timestamp', 'શિક્ષકનું નામ']]))
                                 
-                                # ડાયનેમિક Tabs બનાવ્યા
-                                st_tabs = st.tabs(unique_tabs)
-                                
-                                for idx, tab_name in enumerate(unique_tabs):
-                                    with st_tabs[idx]:
-                                        for q in questions_list:
-                                            if q['tab'] == tab_name:
-                                                q_mark = " *" if q['mandatory'] else ""
-                                                display_name = f"{q['name']}{q_mark}"
-                                                
-                                                if q['type'] == "1":
-                                                    form_answers[q['name']] = st.text_input(display_name, help=q['help'])
-                                                elif q['type'] == "3":
-                                                    form_answers[q['name']] = st.number_input(display_name, help=q['help'], step=1, min_value=0)
-                                                elif q['type'] == "4":
-                                                    form_answers[q['name']] = st.date_input(display_name, help=q['help'])
-                                                elif q['type'] == "6":
-                                                    opts = [o.strip() for o in q['options'].split(",")] if q['options'] else []
-                                                    if "અન્ય" not in opts: opts.append("અન્ય")
-                                                    choice = st.selectbox(display_name, opts, help=q['help'])
-                                                    if choice == "અન્ય":
-                                                        form_answers[q['name']] = st.text_input(f"કૃપા કરીને '{q['name']}' ટાઈપ કરો:")
-                                                    else:
-                                                        form_answers[q['name']] = choice
-                                
-                                st.markdown("<br>", unsafe_allow_html=True)
-                                submitted = st.form_submit_button("🚀 ડેટા સેવ કરો")
-                                
-                                if submitted:
-                                    # ખાલી ફરજિયાત ખાનાંનું ચેકિંગ
-                                    missing_fields = [q['name'] for q in questions_list if q['mandatory'] and (not form_answers.get(q['name']) and form_answers.get(q['name']) != 0)]
+                                with st.form("dynamic_magic_form", clear_on_submit=True):
+                                    st.subheader(f"📝 {selected_sheet_name} એન્ટ્રી")
+                                    form_answers = {}
                                     
-                                    if missing_fields:
-                                        st.error(f"⚠️ કૃપા કરીને ફરજિયાત ખાનાં ભરો: {', '.join(missing_fields)}")
-                                    else:
-                                        # Data Saving Engine
-                                        data_sheet_name = "Data 2025-26"
-                                        try:
-                                            data_worksheet = sheet.worksheet(data_sheet_name)
-                                        except gspread.exceptions.WorksheetNotFound:
-                                            data_worksheet = sheet.add_worksheet(title=data_sheet_name, rows="1000", cols="20")
-                                            headers = ["Timestamp", "શિક્ષકનું નામ"] + [q['name'] for q in questions_list]
-                                            data_worksheet.append_row(headers)
-                                        
-                                        row_data = [datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S"), st.session_state.name]
-                                        for q in questions_list:
-                                            row_data.append(str(form_answers.get(q['name'], "")))
+                                    for q in questions_list:
+                                        if q['name'] == 'Timestamp':
+                                            form_answers[q['name']] = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                                        elif q['name'] == 'શિક્ષકનું નામ':
+                                            form_answers[q['name']] = st.session_state.name
                                             
-                                        data_worksheet.append_row(row_data)
-                                        st.success("✅ તમારો ડેટા સીધો Google Sheet માં સફળતાપૂર્વક સેવ થઈ ગયો છે!")
+                                    if unique_tabs:
+                                        st_tabs = st.tabs(unique_tabs)
+                                        for idx, tab_name in enumerate(unique_tabs):
+                                            with st_tabs[idx]:
+                                                for q in questions_list:
+                                                    if q['tab'] == tab_name and q['name'] not in ['Timestamp', 'શિક્ષકનું નામ']:
+                                                        q_mark = " *" if q['mandatory'] else ""
+                                                        display_name = f"{q['name']}{q_mark}"
+                                                        
+                                                        if q['type'] == "1":
+                                                            form_answers[q['name']] = st.text_input(display_name, help=q['help'])
+                                                        elif q['type'] == "3":
+                                                            form_answers[q['name']] = st.number_input(display_name, help=q['help'], step=1, min_value=0)
+                                                        elif q['type'] == "4":
+                                                            form_answers[q['name']] = st.date_input(display_name, help=q['help'])
+                                                        elif q['type'] == "6":
+                                                            opts = [o.strip() for o in q['options'].split(",")] if q['options'] else []
+                                                            if "અન્ય" not in opts: opts.append("અન્ય")
+                                                            choice = st.selectbox(display_name, opts, help=q['help'])
+                                                            if choice == "અન્ય":
+                                                                form_answers[q['name']] = st.text_input(f"કૃપા કરીને '{q['name']}' ટાઈપ કરો:")
+                                                            else:
+                                                                form_answers[q['name']] = choice
+                                    
+                                    st.markdown("<br>", unsafe_allow_html=True)
+                                    submitted = st.form_submit_button("🚀 ડેટા સેવ કરો")
+                                    
+                                    if submitted:
+                                        missing_fields = [q['name'] for q in questions_list if q['mandatory'] and (not form_answers.get(q['name']) and form_answers.get(q['name']) != 0)]
+                                        if missing_fields:
+                                            st.error(f"⚠️ કૃપા કરીને ફરજિયાત ખાનાં ભરો: {', '.join(missing_fields)}")
+                                        else:
+                                            try:
+                                                data_worksheet = sheet.worksheet(data_sheet_name)
+                                            except gspread.exceptions.WorksheetNotFound:
+                                                data_worksheet = sheet.add_worksheet(title=data_sheet_name, rows="1000", cols="20")
+                                                data_worksheet.append_row([q['name'] for q in questions_list])
+                                            
+                                            row_data = [str(form_answers.get(q['name'], "")) for q in questions_list]
+                                            data_worksheet.append_row(row_data)
+                                            st.success("✅ તમારો ડેટા સીધો Google Sheet માં સફળતાપૂર્વક સેવ થઈ ગયો છે!")
+
+                            # TAB 2: ડેટા એડિટ
+                            with tab_edit:
+                                try:
+                                    data_ws = sheet.worksheet(data_sheet_name)
+                                    all_records = data_ws.get_all_values()
+                                    if len(all_records) > 1:
+                                        df = pd.DataFrame(all_records[1:], columns=all_records[0])
+                                        st.dataframe(df, use_container_width=True)
+                                        
+                                        st.markdown("### ✏️ એન્ટ્રી સુધારો")
+                                        options = [f"Row {i+2}: " + " | ".join(row[:3]) for i, row in enumerate(all_records[1:])]
+                                        selected_idx = st.selectbox("સુધારવા માટે એન્ટ્રી પસંદ કરો:", range(len(options)), format_func=lambda x: options[x])
+                                        selected_row = all_records[selected_idx + 1]
+                                        
+                                        with st.form("edit_form"):
+                                            edit_answers = {}
+                                            for col_idx, col_name in enumerate(all_records[0]):
+                                                old_val = selected_row[col_idx] if col_idx < len(selected_row) else ""
+                                                if col_name in ['Timestamp', 'શિક્ષકનું નામ']:
+                                                    edit_answers[col_name] = old_val
+                                                    st.info(f"{col_name}: {old_val}")
+                                                else:
+                                                    edit_answers[col_name] = st.text_input(col_name, value=old_val)
+                                                    
+                                            if st.form_submit_button("💾 સુધારા સેવ કરો"):
+                                                update_data = [edit_answers.get(c, "") for c in all_records[0]]
+                                                # Update row (index + 2 because API is 1-based and row 1 is header)
+                                                sheet.values_update(
+                                                    f"{data_sheet_name}!A{selected_idx + 2}:Z{selected_idx + 2}",
+                                                    params={'valueInputOption': 'USER_ENTERED'},
+                                                    body={'values': [update_data]}
+                                                )
+                                                st.success("✅ ડેટા સફળતાપૂર્વક સુધારી દેવાયો છે! નવો ડેટા જોવા માટે પેજ રિફ્રેશ કરો.")
+                                    else:
+                                        st.info("કોઈ જૂનો ડેટા નથી.")
+                                except:
+                                    st.warning("હજુ સુધી કોઈ ડેટા સેવ થયો નથી.")
+                                    
                         else:
                             st.warning("⚠️ આ શીટના 'Setup' પાનામાં પૂરી માહિતી નથી.")
                     except gspread.exceptions.WorksheetNotFound:
@@ -183,7 +206,6 @@ else:
             except Exception as e:
                 st.error(f"એરર આવી છે: {e}")
 
-    # (બાકીના મોડ્યુલનો કોડ યથાવત છે - Reports, Profile, Settings)
     elif menu == "📝 અહેવાલ મોડ્યુલ":
         show_report_module()
         

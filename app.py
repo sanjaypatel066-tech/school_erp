@@ -83,55 +83,70 @@ else:
             col1.metric("તમારા બનાવેલા અહેવાલો", "05")
             col2.metric("તમારો આજનો તાસ", "ધોરણ ૬, ૭")
             
-    elif menu == "✨ સ્માર્ટ એન્ટ્રી":
-        st.header("✨ સ્માર્ટ ડાયનેમિક એન્ટ્રી ફોર્મ")
-        st.markdown("આ ફોર્મ તમારી Google Sheet ના 'Setup' માંથી ઓટોમેટિક બની રહ્યું છે!")
-        
-        with st.spinner("તમારું ફોર્મ તૈયાર થઈ રહ્યું છે..."):
+    with st.spinner("તમારું ફોર્મ અને શીટ્સ તૈયાર થઈ રહી છે..."):
             try:
-                # ગુગલ સિક્રેટ્સ વાંચવાનો નવો અને સુરક્ષિત કોડ
                 raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
-                # strict=False ઉમેરવાથી 'Invalid control character' વાળી એરર બાયપાસ થઈ જશે
                 creds_dict = json.loads(raw_creds, strict=False) 
                 
                 scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
                 client = gspread.authorize(creds)
                 
-                sheet = client.open_by_key("1BCu-RmpfFDixmt8IQ2B82fz3XcdOEhICG2E9_30_sQw")
-                setup_sheet = sheet.worksheet("Setup")
-                setup_data = setup_sheet.get_all_values()
+                # ૧. સર્વિસ એકાઉન્ટ સાથે શેર કરેલી બધી શીટ્સ Fetch કરો
+                all_sheets = client.list_spreadsheet_files()
                 
-                if len(setup_data) >= 11:
-                    with st.form("dynamic_magic_form", clear_on_submit=True):
-                        st.subheader(f"📝 {setup_data[0][1]} એન્ટ્રી")
+                if all_sheets:
+                    # શીટના નામ અને ID નું લિસ્ટ બનાવો
+                    sheet_options = {s['name']: s['id'] for s in all_sheets}
+                    
+                    # ૨. ડ્રોપડાઉનમાં શીટ પસંદ કરવાનો વિકલ્પ
+                    selected_sheet_name = st.selectbox("📂 ડેટા એન્ટ્રી માટે Google Sheet પસંદ કરો:", list(sheet_options.keys()))
+                    selected_sheet_id = sheet_options[selected_sheet_name]
+                    
+                    st.markdown("---")
+                    
+                    # ૩. માત્ર પસંદ કરેલી શીટ જ ઓપન કરો
+                    sheet = client.open_by_key(selected_sheet_id)
+                    
+                    try:
+                        setup_sheet = sheet.worksheet("Setup")
+                        setup_data = setup_sheet.get_all_values()
                         
-                        form_answers = {}
+                        if len(setup_data) >= 11:
+                            with st.form("dynamic_magic_form", clear_on_submit=True):
+                                st.subheader(f"📝 {setup_data[0][1]} એન્ટ્રી")
+                                
+                                form_answers = {}
+                                
+                                for col_idx in range(1, len(setup_data[0])):
+                                    question = setup_data[0][col_idx]
+                                    q_type = setup_data[1][col_idx]
+                                    help_text = setup_data[4][col_idx]
+                                    
+                                    if question.strip() != "":
+                                        if q_type == "1":
+                                            form_answers[question] = st.text_input(question, help=help_text)
+                                        elif q_type == "3":
+                                            form_answers[question] = st.number_input(question, help=help_text, step=1, min_value=0)
+                                        elif q_type == "4":
+                                            form_answers[question] = st.date_input(question, help=help_text)
+                                
+                                st.markdown("<br>", unsafe_allow_html=True)
+                                submitted = st.form_submit_button("🚀 ડેટા સેવ કરો")
+                                
+                                if submitted:
+                                    st.success("✅ તમારો ડેટા સફળતાપૂર્વક લેવાયો!")
+                                    st.json(form_answers) 
+                        else:
+                            st.warning("⚠️ આ શીટના 'Setup' પાનામાં પૂરી માહિતી નથી. કૃપા કરીને Row 1 થી 11 ભરો.")
+                    except gspread.exceptions.WorksheetNotFound:
+                        st.error("⚠️ આ ગુગલ શીટમાં 'Setup' નામનું પાનું (Tab) મળતું નથી. કૃપા કરીને નવું પાનું બનાવી તેનું નામ 'Setup' રાખો.")
                         
-                        for col_idx in range(1, len(setup_data[0])):
-                            question = setup_data[0][col_idx]
-                            q_type = setup_data[1][col_idx]
-                            help_text = setup_data[4][col_idx]
-                            
-                            if question.strip() != "":
-                                if q_type == "1":
-                                    form_answers[question] = st.text_input(question, help=help_text)
-                                elif q_type == "3":
-                                    form_answers[question] = st.number_input(question, help=help_text, step=1, min_value=0)
-                                elif q_type == "4":
-                                    form_answers[question] = st.date_input(question, help=help_text)
-                        
-                        st.markdown("<br>", unsafe_allow_html=True)
-                        submitted = st.form_submit_button("🚀 ડેટા સેવ કરો")
-                        
-                        if submitted:
-                            st.success("✅ તમારો ડેટા સફળતાપૂર્વક લેવાયો!")
-                            st.json(form_answers) 
                 else:
-                    st.warning("⚠️ Setup શીટમાં પૂરી માહિતી નથી. કૃપા કરીને Row 1 થી 11 ભરો.")
+                    st.info("⚠️ હજુ સુધી કોઈ ગૂગલ શીટ જોડાયેલી નથી.")
+                    
             except Exception as e:
                 st.error(f"એરર આવી છે: {e}")
-
     elif menu == "📝 અહેવાલ મોડ્યુલ":
         show_report_module()
         

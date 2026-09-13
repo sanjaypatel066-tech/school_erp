@@ -68,6 +68,7 @@ else:
             col1.metric("તમારા બનાવેલા અહેવાલો", "05")
             col2.metric("તમારો આજનો તાસ", "ધોરણ ૬, ૭")
             
+    # --- માસ્ટર ડાયનેમિક "સ્માર્ટ એન્ટ્રી" ---
     elif menu == "✨ સ્માર્ટ એન્ટ્રી":
         st.markdown("<div class='premium-header'><h2>✨ સ્માર્ટ ડાયનેમિક એન્ટ્રી</h2><p>Google Sheet આધારિત ફોર્મ</p></div>", unsafe_allow_html=True)
         
@@ -157,7 +158,8 @@ else:
                                 unique_tabs = list(dict.fromkeys([q['tab'] for q in questions_list]))
                                 
                                 with st.form("dynamic_magic_form", clear_on_submit=True):
-                                    st.subheader(f"📝 {selected_sheet_name}")
+                                    # હેડિંગમાં ફોર્મનું નામ મોટું દેખાશે
+                                    st.markdown(f"<h2>📝 {selected_sheet_name}</h2>", unsafe_allow_html=True)
                                     form_answers = {}
                                     
                                     if unique_tabs:
@@ -211,8 +213,7 @@ else:
                                                             elif q['type'] == "8":
                                                                 form_answers[q['name']] = st.time_input(display_name, help=q['help'])
                                                             elif q['type'] == "9":
-                                                                # અહીં આપણે આખી ફાઈલ સેવ કરીશું, માત્ર નામ નહિ
-                                                                f_up = st.file_uploader(display_name, type=["png", "jpg", "jpeg", "pdf"], help=q['help'] + " (નેટ ધીમું હોય તો નાની ફાઈલ સિલેક્ટ કરવી)")
+                                                                f_up = st.file_uploader(display_name, type=["png", "jpg", "jpeg", "pdf"], help=q['help'])
                                                                 form_answers[q['name']] = f_up
                                                             elif q['type'] == "10":
                                                                 form_answers[q['name']] = st.text_input(display_name, value=auto_val, help="અહીં લિંક પેસ્ટ કરો")
@@ -223,6 +224,8 @@ else:
                                                                 val = st.text_input(display_name, value=auto_val, help=q['help'] + " (ફક્ત આંકડા જ લખો)")
                                                                 if val and not val.isdigit() and val != "": st.warning(f"⚠️ કૃપા કરીને '{q['name']}' માં ફક્ત આંકડા જ લખો.")
                                                                 form_answers[q['name']] = val
+                                                            else:
+                                                                form_answers[q['name']] = st.text_input(display_name, value=auto_val, help=q['help'])
                                                                     
                                     st.markdown("<br>", unsafe_allow_html=True)
                                     submitted = st.form_submit_button("✅ ડેટા સેવ કરો")
@@ -238,9 +241,7 @@ else:
                                         if missing:
                                             st.error(f"⚠️ ફરજિયાત ખાનાં ભરો: {', '.join(missing)}")
                                         else:
-                                            # ડેટા સેવ કરતી વખતે સ્પિનર બતાવશે જેથી એપ હેંગ ન લાગે
                                             with st.spinner("ડેટા અને ફોટો અપલોડ થઈ રહ્યા છે, થોડી રાહ જુઓ..."):
-                                                # ફોટો અપલોડ કરવાનું પાવરફુલ લોજીક
                                                 for q in questions_list:
                                                     if q['type'] == "9":
                                                         file_obj = form_answers.get(q['name'])
@@ -249,14 +250,13 @@ else:
                                                                 file_ext = file_obj.name.split('.')[-1]
                                                                 unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
                                                                 file_bytes = file_obj.getvalue()
-                                                                # સુપાબેઝમાં ફોટો ચડાવશે
                                                                 supabase.storage.from_('school_uploads').upload(unique_name, file_bytes)
-                                                                # તેની લિંક બનાવશે
                                                                 img_url = supabase.storage.from_('school_uploads').get_public_url(unique_name)
-                                                                form_answers[q['name']] = img_url # લિંક સેવ થશે
+                                                                # ગૂગલ શીટમાં ફોટો સીધો ખાનામાં દેખાય તે માટે =IMAGE ફોર્મ્યુલા
+                                                                form_answers[q['name']] = f'=IMAGE("{img_url}")'
                                                             except Exception as e:
-                                                                st.error(f"ફોટો અપલોડમાં તકલીફ: (શું તમે Supabase માં 'school_uploads' બકેટ બનાવ્યું છે?)")
-                                                                form_answers[q['name']] = file_obj.name # ફેલ થાય તો માત્ર નામ સેવ કરશે
+                                                                st.error(f"ફોટો અપલોડમાં તકલીફ: સિક્યુરિટી પોલિસી ચેક કરો.")
+                                                                form_answers[q['name']] = file_obj.name
                                                         else:
                                                             form_answers[q['name']] = ""
                                                             
@@ -295,15 +295,34 @@ else:
                                                     elif mode in ["2", "3", "4", "5"]:
                                                         st.text_input(f"{col_name} (લોક)", value=old_val, disabled=True)
                                                         edit_answers[col_name] = old_val
+                                                    elif q['type'] == "9": # ફોટો એડિટ કરવાનું લોજીક
+                                                        st.markdown(f"**{col_name} (જૂનો ફોટો):** {old_val}")
+                                                        f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો (જૂનો બદલવા માટે)", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_{col_name}")
+                                                        edit_answers[col_name] = f_up if f_up else old_val
                                                     else: edit_answers[col_name] = st.text_input(col_name, value=old_val)
                                                 else:
                                                     st.text_input(f"{col_name} (જૂનો ડેટા)", value=old_val, disabled=True)
                                                     edit_answers[col_name] = old_val
                                                     
                                             if st.form_submit_button("💾 સુધારા સેવ કરો"):
-                                                update_data = [edit_answers.get(c, "") for c in all_records[0]]
-                                                sheet.values_update(f"{data_sheet_name}!A{selected_idx + 2}:Z{selected_idx + 2}", params={'valueInputOption': 'USER_ENTERED'}, body={'values': [update_data]})
-                                                st.success("✅ ડેટા સુધરી ગયો છે! રિફ્રેશ કરો.")
+                                                with st.spinner("સુધારા સેવ થઈ રહ્યા છે..."):
+                                                    # ફોટો અપડેટ લોજીક
+                                                    for col_name, ans in edit_answers.items():
+                                                        q = next((item for item in questions_list if item["name"] == col_name), None)
+                                                        if q and q['type'] == "9" and str(type(ans)) != "<class 'str'>":
+                                                            try:
+                                                                file_ext = ans.name.split('.')[-1]
+                                                                unique_name = f"{int(datetime.datetime.now().timestamp())}_edit.{file_ext}"
+                                                                file_bytes = ans.getvalue()
+                                                                supabase.storage.from_('school_uploads').upload(unique_name, file_bytes)
+                                                                img_url = supabase.storage.from_('school_uploads').get_public_url(unique_name)
+                                                                edit_answers[col_name] = f'=IMAGE("{img_url}")'
+                                                            except:
+                                                                edit_answers[col_name] = ans.name
+                                                    
+                                                    update_data = [edit_answers.get(c, "") for c in all_records[0]]
+                                                    sheet.values_update(f"{data_sheet_name}!A{selected_idx + 2}:Z{selected_idx + 2}", params={'valueInputOption': 'USER_ENTERED'}, body={'values': [update_data]})
+                                                    st.success("✅ ડેટા સુધરી ગયો છે! નવો ડેટા જોવા માટે પેજ રિફ્રેશ કરો.")
                                     else: st.info("કોઈ જૂનો ડેટા નથી.")
                                 except: st.warning("હજુ કોઈ ડેટા સેવ થયો નથી.")
                         else: st.warning("⚠️ Setup પાનામાં 'પ્રશ્ન / હેડિંગ' વાળી લાઈન મળતી નથી.")

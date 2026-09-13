@@ -10,6 +10,7 @@ import pandas as pd
 
 st.set_page_config(page_title="School ERP", layout="wide", initial_sidebar_state="expanded")
 
+# --- 1. પ્રીમિયમ ડિઝાઇન (CSS) ---
 st.markdown("""
     <style>
     .main { background-color: #F4F7FE; }
@@ -29,12 +30,14 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
+# --- 2. લોગિન સિસ્ટમ ---
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     login_form()
 else:
+    # --- 3. સાઈડબાર મેનુ ---
     st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2991/2991148.png", width=100)
     st.sidebar.title(f"નમસ્તે, {st.session_state.name}")
     st.sidebar.markdown(f"**હોદ્દો:** {st.session_state.role}")
@@ -57,11 +60,13 @@ else:
             col1.metric("તમારા બનાવેલા અહેવાલો", "05")
             col2.metric("તમારો આજનો તાસ", "ધોરણ ૬, ૭")
             
+    # --- 4. માસ્ટર ડાયનેમિક "સ્માર્ટ એન્ટ્રી" ---
     elif menu == "✨ સ્માર્ટ એન્ટ્રી":
         st.header("✨ સ્માર્ટ ડાયનેમિક એન્ટ્રી ફોર્મ")
         
         with st.spinner("તમારું ફોર્મ અને ડેટાબેઝ તૈયાર થઈ રહ્યા છે..."):
             try:
+                # ગૂગલ કનેક્શન
                 raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
                 creds_dict = json.loads(raw_creds, strict=False) 
                 scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
@@ -82,80 +87,114 @@ else:
                         setup_sheet = sheet.worksheet("Setup")
                         setup_data = setup_sheet.get_all_values()
                         
+                        # સેફ ડેટા રીડીંગ ફંક્શન
                         def get_val(row_idx, col_idx, default=""):
                             try: return str(setup_data[row_idx][col_idx]).strip()
                             except IndexError: return default
 
                         if len(setup_data) >= 2:
                             questions_list = []
+                            # Column A સ્કીપ કરવા લૂપ 1 થી શરૂ
                             for col_idx in range(1, len(setup_data[0])):
-                                q_name = get_val(0, col_idx)
+                                q_name = get_val(1, col_idx) # Row 2 (પ્રશ્ન / હેડિંગ)
                                 if q_name != "":
-                                    # Row 12 (Index 11) માંથી પ્રશ્નનો ક્રમ લેવો (ખાલી હોય તો 999)
-                                    order_val = get_val(11, col_idx, "999")
+                                    # નવા ઉમેરેલા ફીચર્સ વાંચવા (Column, Entry Mode, Edit Mode)
+                                    order_val = get_val(12, col_idx, "999") # Row 13 (કોલમ ક્રમ)
                                     try: order_num = int(order_val)
                                     except: order_num = 999
                                     
+                                    entry_mode = get_val(13, col_idx, "1").split()[0] # Row 14
+                                    edit_mode = get_val(14, col_idx, "1").split()[0]  # Row 15
+                                    
                                     questions_list.append({
                                         "name": q_name,
-                                        "type": get_val(1, col_idx).split()[0] if get_val(1, col_idx) else "1",
-                                        "options": get_val(2, col_idx),
-                                        "tab": get_val(3, col_idx, "સામાન્ય માહિતી") or "સામાન્ય માહિતી",
-                                        "help": get_val(4, col_idx),
-                                        "mandatory": get_val(5, col_idx).lower() in ['હા', 'yes'],
-                                        "order": order_num
+                                        "type": get_val(2, col_idx).split()[0] if get_val(2, col_idx) else "1",
+                                        "options": get_val(3, col_idx),
+                                        "tab": get_val(4, col_idx, "સામાન્ય માહિતી") or "સામાન્ય માહિતી",
+                                        "help": get_val(5, col_idx),
+                                        "mandatory": get_val(6, col_idx).lower() in ['હા', 'yes'],
+                                        "default": get_val(7, col_idx),
+                                        "order": order_num,
+                                        "entry_mode": entry_mode,
+                                        "edit_mode": edit_mode
                                     })
                             
-                            # પ્રશ્નોને આપેલા ક્રમ મુજબ ગોઠવવા
+                            # પ્રશ્નોને 'કોલમ ક્રમ' મુજબ ગોઠવવા (તમારો નવો આઈડિયા)
                             questions_list = sorted(questions_list, key=lambda x: x['order'])
                             
                             tab_new, tab_edit = st.tabs(["📝 નવી એન્ટ્રી", "✏️ જૂનો ડેટા જુઓ/સુધારો"])
                             data_sheet_name = "Data 2025-26"
                             
-                            # TAB 1: નવી એન્ટ્રી
+                            # === TAB 1: નવી એન્ટ્રી ===
                             with tab_new:
-                                unique_tabs = list(dict.fromkeys([q['tab'] for q in questions_list if q['name'] not in ['Timestamp', 'શિક્ષકનું નામ']]))
+                                unique_tabs = list(dict.fromkeys([q['tab'] for q in questions_list]))
                                 
                                 with st.form("dynamic_magic_form", clear_on_submit=True):
                                     st.subheader(f"📝 {selected_sheet_name} એન્ટ્રી")
                                     form_answers = {}
                                     
-                                    for q in questions_list:
-                                        if q['name'] == 'Timestamp':
-                                            form_answers[q['name']] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                                        elif q['name'] == 'શિક્ષકનું નામ':
-                                            form_answers[q['name']] = st.session_state.name
-                                            
                                     if unique_tabs:
                                         st_tabs = st.tabs(unique_tabs)
                                         for idx, tab_name in enumerate(unique_tabs):
                                             with st_tabs[idx]:
                                                 for q in questions_list:
-                                                    if q['tab'] == tab_name and q['name'] not in ['Timestamp', 'શિક્ષકનું નામ']:
-                                                        q_mark = " *" if q['mandatory'] else ""
+                                                    if q['tab'] == tab_name:
+                                                        mode = q['entry_mode']
+                                                        
+                                                        # ઓટો-વેલ્યુ સેટિંગ (તમારી ખાસ સૂચના મુજબ)
+                                                        auto_val = ""
+                                                        if q['name'].lower() in ['timestamp', 'સમય', 'તારીખ અને સમય']:
+                                                            auto_val = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+                                                        elif q['name'] in ['શિક્ષકનું નામ', 'શિક્ષક']:
+                                                            auto_val = st.session_state.name
+                                                        elif q['default']:
+                                                            if q['default'].lower() == 'today':
+                                                                auto_val = datetime.date.today().strftime("%d-%m-%Y")
+                                                            else:
+                                                                auto_val = q['default']
+                                                        
+                                                        # મોડ 6: છુપાવેલું ખાનું (ફક્ત ડેટાબેઝમાં જશે, દેખાશે નહિ)
+                                                        if mode == "6":
+                                                            form_answers[q['name']] = auto_val
+                                                            continue
+                                                            
+                                                        # મોડ 2, 3, 4, 5: લોક કરેલા ખાનાં (Read Only / Auto Fill)
+                                                        is_locked = mode in ["2", "3", "4", "5"]
+                                                        q_mark = " *" if q['mandatory'] and not is_locked else ""
                                                         display_name = f"{q['name']}{q_mark}"
                                                         
-                                                        if q['type'] == "1":
-                                                            form_answers[q['name']] = st.text_input(display_name, help=q['help'])
-                                                        elif q['type'] == "3":
-                                                            # value=None વાપરવાથી ખાલી બોક્સ ઝીરો નહિ બતાવે
-                                                            form_answers[q['name']] = st.number_input(display_name, help=q['help'], step=1, min_value=0, value=None)
-                                                        elif q['type'] == "4":
-                                                            form_answers[q['name']] = st.date_input(display_name, help=q['help'])
-                                                        elif q['type'] == "6":
-                                                            opts = [o.strip() for o in q['options'].split(",")] if q['options'] else []
-                                                            if "અન્ય" not in opts: opts.append("અન્ય")
-                                                            choice = st.selectbox(display_name, opts, help=q['help'])
-                                                            if choice == "અન્ય":
-                                                                form_answers[q['name']] = st.text_input(f"કૃપા કરીને '{q['name']}' ટાઈપ કરો:")
-                                                            else:
-                                                                form_answers[q['name']] = choice
-                                    
+                                                        if is_locked:
+                                                            st.text_input(display_name, value=auto_val, disabled=True, help="આ ખાનું ઓટોમેટિક ભરાશે અથવા ફક્ત જોવા માટે છે.")
+                                                            form_answers[q['name']] = auto_val
+                                                        else:
+                                                            # મોડ 1: નોર્મલ એન્ટ્રી
+                                                            if q['type'] in ["1", "2"]:
+                                                                form_answers[q['name']] = st.text_input(display_name, value=auto_val, help=q['help'])
+                                                            elif q['type'] == "3":
+                                                                form_answers[q['name']] = st.number_input(display_name, help=q['help'], step=1, min_value=0, value=None)
+                                                            elif q['type'] == "4":
+                                                                form_answers[q['name']] = st.date_input(display_name, help=q['help'])
+                                                            elif q['type'] == "6":
+                                                                opts = [o.strip() for o in q['options'].split(",")] if q['options'] else []
+                                                                if "અન્ય" not in opts: opts.append("અન્ય")
+                                                                choice = st.selectbox(display_name, opts, help=q['help'])
+                                                                if choice == "અન્ય":
+                                                                    form_answers[q['name']] = st.text_input(f"કૃપા કરીને '{q['name']}' ટાઈપ કરો:")
+                                                                else:
+                                                                    form_answers[q['name']] = choice
+                                                                    
                                     st.markdown("<br>", unsafe_allow_html=True)
                                     submitted = st.form_submit_button("🚀 ડેટા સેવ કરો")
                                     
                                     if submitted:
-                                        missing_fields = [q['name'] for q in questions_list if q['mandatory'] and (form_answers.get(q['name']) is None or str(form_answers.get(q['name'])).strip() == "")]
+                                        # ખાલી ફરજિયાત ખાનાંનું ચેકિંગ (ફક્ત એડિટ મોડ 1 માટે જ)
+                                        missing_fields = []
+                                        for q in questions_list:
+                                            if q['mandatory'] and q['entry_mode'] == "1":
+                                                ans = form_answers.get(q['name'])
+                                                if ans is None or str(ans).strip() == "":
+                                                    missing_fields.append(q['name'])
+                                                    
                                         if missing_fields:
                                             st.error(f"⚠️ કૃપા કરીને ફરજિયાત ખાનાં ભરો: {', '.join(missing_fields)}")
                                         else:
@@ -163,14 +202,14 @@ else:
                                                 data_worksheet = sheet.worksheet(data_sheet_name)
                                             except gspread.exceptions.WorksheetNotFound:
                                                 data_worksheet = sheet.add_worksheet(title=data_sheet_name, rows="1000", cols="20")
+                                                # હેડર લાઈનમાં હવે સિસ્ટમ જાતે કોઈ એક્સ્ટ્રા કોલમ નહિ ઉમેરે (માત્ર Setup મુજબ)
                                                 data_worksheet.append_row([q['name'] for q in questions_list], value_input_option='USER_ENTERED')
                                             
-                                            # ડેટા સેવ કરતી વખતે USER_ENTERED જેથી તારીખ અને આંકડાનું ફોર્મેટ ન બગડે
                                             row_data = ["" if form_answers.get(q['name']) is None else str(form_answers.get(q['name'])) for q in questions_list]
                                             data_worksheet.append_row(row_data, value_input_option='USER_ENTERED')
                                             st.success("✅ તમારો ડેટા સીધો Google Sheet માં સફળતાપૂર્વક સેવ થઈ ગયો છે!")
 
-                            # TAB 2: ડેટા એડિટ
+                            # === TAB 2: ડેટા એડિટ (જૂનો ડેટા સુધારવા) ===
                             with tab_edit:
                                 try:
                                     data_ws = sheet.worksheet(data_sheet_name)
@@ -180,6 +219,7 @@ else:
                                         st.dataframe(df, use_container_width=True)
                                         
                                         st.markdown("### ✏️ એન્ટ્રી સુધારો")
+                                        # ડ્રોપડાઉનમાં પહેલી ૩ વિગતો બતાવશે જેથી શિક્ષક એન્ટ્રી ઓળખી શકે
                                         options = [f"Row {i+2}: " + " | ".join(row[:3]) for i, row in enumerate(all_records[1:])]
                                         selected_idx = st.selectbox("સુધારવા માટે એન્ટ્રી પસંદ કરો:", range(len(options)), format_func=lambda x: options[x])
                                         selected_row = all_records[selected_idx + 1]
@@ -188,11 +228,23 @@ else:
                                             edit_answers = {}
                                             for col_idx, col_name in enumerate(all_records[0]):
                                                 old_val = selected_row[col_idx] if col_idx < len(selected_row) else ""
-                                                if col_name in ['Timestamp', 'શિક્ષકનું નામ']:
-                                                    edit_answers[col_name] = old_val
-                                                    st.info(f"{col_name}: {old_val}")
+                                                
+                                                # Setup માંથી પ્રશ્ન શોધો અને તેનો 'Input When Edit' મોડ ચેક કરો
+                                                q = next((item for item in questions_list if item["name"] == col_name), None)
+                                                
+                                                if q:
+                                                    mode = q['edit_mode']
+                                                    if mode == "6": # છુપાવો
+                                                        edit_answers[col_name] = old_val
+                                                    elif mode in ["2", "3", "4", "5"]: # લોક રાખો
+                                                        st.text_input(f"{col_name} (લોક કરેલ)", value=old_val, disabled=True)
+                                                        edit_answers[col_name] = old_val
+                                                    else: # મોડ 1 (સુધારો)
+                                                        edit_answers[col_name] = st.text_input(col_name, value=old_val)
                                                 else:
-                                                    edit_answers[col_name] = st.text_input(col_name, value=old_val)
+                                                    # જો પ્રશ્ન Setup માંથી કાઢી નાખ્યો હોય પણ DB માં પડ્યો હોય
+                                                    st.text_input(f"{col_name} (જૂનો ડેટા)", value=old_val, disabled=True)
+                                                    edit_answers[col_name] = old_val
                                                     
                                             if st.form_submit_button("💾 સુધારા સેવ કરો"):
                                                 update_data = [edit_answers.get(c, "") for c in all_records[0]]
@@ -216,6 +268,7 @@ else:
             except Exception as e:
                 st.error(f"એરર આવી છે: {e}")
 
+    # (બાકીના મોડ્યુલનો કોડ યથાવત છે - Reports, Profile, Settings)
     elif menu == "📝 અહેવાલ મોડ્યુલ":
         show_report_module()
         

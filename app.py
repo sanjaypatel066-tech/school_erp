@@ -68,7 +68,6 @@ else:
             col1.metric("તમારા બનાવેલા અહેવાલો", "05")
             col2.metric("તમારો આજનો તાસ", "ધોરણ ૬, ૭")
             
-    # --- માસ્ટર ડાયનેમિક "સ્માર્ટ એન્ટ્રી" ---
     elif menu == "✨ સ્માર્ટ એન્ટ્રી":
         st.markdown("<div class='premium-header'><h2>✨ સ્માર્ટ ડાયનેમિક એન્ટ્રી</h2><p>Google Sheet આધારિત ફોર્મ</p></div>", unsafe_allow_html=True)
         
@@ -94,8 +93,6 @@ else:
                         setup_sheet = sheet.worksheet("Setup")
                         setup_data = setup_sheet.get_all_values()
                         
-                        # --- એડવાન્સ ડાયનેમિક રો મેપર (Row Mapper) ---
-                        # આ કોડ Column A ના નામ વાંચીને જાતે જ લાઈન નંબર શોધી લેશે!
                         row_map = {}
                         for i, row in enumerate(setup_data):
                             if not row: continue
@@ -111,14 +108,12 @@ else:
                             elif "entry" in header: row_map['entry_mode'] = i
                             elif "edit" in header: row_map['edit_mode'] = i
 
-                        # સેફ્ટી કવચ + ઓટો ડીફોલ્ટ વેલ્યુ ફંક્શન
                         def get_mapped_val(key, col_idx, default=""):
                             if key not in row_map: return default
                             row_idx = row_map[key]
                             try:
                                 if row_idx < len(setup_data) and col_idx < len(setup_data[row_idx]):
                                     val = str(setup_data[row_idx][col_idx]).strip()
-                                    # જો ખાનું ખાલી હોય કે ડેશ (-) હોય તો ડિફોલ્ટ વેલ્યુ પાછી આપશે
                                     return val if val not in ["", "-"] else default
                                 return default
                             except:
@@ -131,20 +126,19 @@ else:
                             for col_idx in range(1, max_cols):
                                 q_name = get_mapped_val('q_name', col_idx)
                                 if q_name != "":
-                                    # અહીં બધી જ ડીફોલ્ટ વેલ્યુ સેટ કરેલી છે (તમારી માંગણી મુજબ)
                                     order_val = get_mapped_val('order', col_idx, "999")
                                     try: order_num = int(order_val)
                                     except: order_num = 999
                                     
                                     entry_mode = get_mapped_val('entry_mode', col_idx, "1").split()[0]
                                     edit_mode = get_mapped_val('edit_mode', col_idx, "1").split()[0]
-                                    q_type = get_mapped_val('type', col_idx, "1").split()[0] # ડીફોલ્ટ Text Box
+                                    q_type = get_mapped_val('type', col_idx, "1").split()[0]
                                     
                                     questions_list.append({
                                         "name": q_name,
                                         "type": q_type,
                                         "options": get_mapped_val('options', col_idx, ""),
-                                        "tab": get_mapped_val('tab', col_idx, "સામાન્ય માહિતી"), # ડીફોલ્ટ ટેબ
+                                        "tab": get_mapped_val('tab', col_idx, "સામાન્ય માહિતી"),
                                         "help": get_mapped_val('help', col_idx, ""),
                                         "mandatory": get_mapped_val('mandatory', col_idx, "no").lower() in ['હા', 'yes', 'true'],
                                         "default": get_mapped_val('default', col_idx, ""),
@@ -173,15 +167,13 @@ else:
                                                 for q in questions_list:
                                                     if q['tab'] == tab_name:
                                                         mode = q['entry_mode']
-                                                        
                                                         auto_val = ""
                                                         if q['name'].lower() in ['timestamp', 'સમય', 'તારીખ અને સમય']:
                                                             auto_val = datetime.datetime.now().strftime("%d-%m-%Y %H:%M:%S")
                                                         elif q['name'] in ['શિક્ષકનું નામ', 'શિક્ષક']:
                                                             auto_val = st.session_state.name
                                                         elif q['default']:
-                                                            if q['default'].lower() == 'today':
-                                                                auto_val = datetime.date.today().strftime("%d-%m-%Y")
+                                                            if q['default'].lower() == 'today': auto_val = datetime.date.today().strftime("%d-%m-%Y")
                                                             else: auto_val = q['default']
                                                         
                                                         if mode == "6":
@@ -193,10 +185,9 @@ else:
                                                         display_name = f"{q['name']}{q_mark}"
                                                         
                                                         if is_locked:
-                                                            st.text_input(display_name, value=auto_val, disabled=True, help="આ ખાનું લોક છે.")
+                                                            st.text_input(display_name, value=auto_val, disabled=True)
                                                             form_answers[q['name']] = auto_val
                                                         else:
-                                                            # ALL 12 INPUT TYPES
                                                             if q['type'] == "1":
                                                                 form_answers[q['name']] = st.text_input(display_name, value=auto_val, help=q['help'])
                                                             elif q['type'] == "2":
@@ -212,8 +203,7 @@ else:
                                                                 opts = [o.strip() for o in q['options'].split(",")] if q['options'] else []
                                                                 if "અન્ય" not in opts: opts.append("અન્ય")
                                                                 choice = st.selectbox(display_name, opts, help=q['help'])
-                                                                if choice == "અન્ય":
-                                                                    form_answers[q['name']] = st.text_input(f"કૃપા કરીને '{q['name']}' ટાઈપ કરો:")
+                                                                if choice == "અન્ય": form_answers[q['name']] = st.text_input(f"કૃપા કરીને '{q['name']}' ટાઈપ કરો:")
                                                                 else: form_answers[q['name']] = choice
                                                             elif q['type'] == "7":
                                                                 switch_val = st.toggle(display_name, help=q['help'])
@@ -221,8 +211,9 @@ else:
                                                             elif q['type'] == "8":
                                                                 form_answers[q['name']] = st.time_input(display_name, help=q['help'])
                                                             elif q['type'] == "9":
-                                                                f_up = st.file_uploader(display_name, type=["png", "jpg", "pdf"], help=q['help'])
-                                                                form_answers[q['name']] = f_up.name if f_up else ""
+                                                                # અહીં આપણે આખી ફાઈલ સેવ કરીશું, માત્ર નામ નહિ
+                                                                f_up = st.file_uploader(display_name, type=["png", "jpg", "jpeg", "pdf"], help=q['help'] + " (નેટ ધીમું હોય તો નાની ફાઈલ સિલેક્ટ કરવી)")
+                                                                form_answers[q['name']] = f_up
                                                             elif q['type'] == "10":
                                                                 form_answers[q['name']] = st.text_input(display_name, value=auto_val, help="અહીં લિંક પેસ્ટ કરો")
                                                             elif q['type'] == "11":
@@ -230,28 +221,53 @@ else:
                                                                 form_answers[q['name']] = "Auto"
                                                             elif q['type'] == "12":
                                                                 val = st.text_input(display_name, value=auto_val, help=q['help'] + " (ફક્ત આંકડા જ લખો)")
-                                                                if val and not val.isdigit() and val != "":
-                                                                    st.warning(f"⚠️ કૃપા કરીને '{q['name']}' માં ફક્ત આંકડા જ લખો.")
+                                                                if val and not val.isdigit() and val != "": st.warning(f"⚠️ કૃપા કરીને '{q['name']}' માં ફક્ત આંકડા જ લખો.")
                                                                 form_answers[q['name']] = val
-                                                            else:
-                                                                form_answers[q['name']] = st.text_input(display_name, value=auto_val, help=q['help'])
                                                                     
                                     st.markdown("<br>", unsafe_allow_html=True)
                                     submitted = st.form_submit_button("✅ ડેટા સેવ કરો")
                                     
                                     if submitted:
-                                        missing = [q['name'] for q in questions_list if q['mandatory'] and q['entry_mode'] == "1" and (form_answers.get(q['name']) is None or str(form_answers.get(q['name'])).strip() == "")]
+                                        missing = []
+                                        for q in questions_list:
+                                            if q['mandatory'] and q['entry_mode'] == "1":
+                                                ans = form_answers.get(q['name'])
+                                                if ans is None or (isinstance(ans, str) and str(ans).strip() == ""):
+                                                    missing.append(q['name'])
+                                                    
                                         if missing:
                                             st.error(f"⚠️ ફરજિયાત ખાનાં ભરો: {', '.join(missing)}")
                                         else:
-                                            try: data_ws = sheet.worksheet(data_sheet_name)
-                                            except:
-                                                data_ws = sheet.add_worksheet(title=data_sheet_name, rows="1000", cols="20")
-                                                data_ws.append_row([q['name'] for q in questions_list], value_input_option='USER_ENTERED')
-                                            
-                                            row_data = ["" if form_answers.get(q['name']) is None else str(form_answers.get(q['name'])) for q in questions_list]
-                                            data_ws.append_row(row_data, value_input_option='USER_ENTERED')
-                                            st.success("✅ ડેટા સફળતાપૂર્વક સેવ થઈ ગયો છે!")
+                                            # ડેટા સેવ કરતી વખતે સ્પિનર બતાવશે જેથી એપ હેંગ ન લાગે
+                                            with st.spinner("ડેટા અને ફોટો અપલોડ થઈ રહ્યા છે, થોડી રાહ જુઓ..."):
+                                                # ફોટો અપલોડ કરવાનું પાવરફુલ લોજીક
+                                                for q in questions_list:
+                                                    if q['type'] == "9":
+                                                        file_obj = form_answers.get(q['name'])
+                                                        if file_obj:
+                                                            try:
+                                                                file_ext = file_obj.name.split('.')[-1]
+                                                                unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
+                                                                file_bytes = file_obj.getvalue()
+                                                                # સુપાબેઝમાં ફોટો ચડાવશે
+                                                                supabase.storage.from_('school_uploads').upload(unique_name, file_bytes)
+                                                                # તેની લિંક બનાવશે
+                                                                img_url = supabase.storage.from_('school_uploads').get_public_url(unique_name)
+                                                                form_answers[q['name']] = img_url # લિંક સેવ થશે
+                                                            except Exception as e:
+                                                                st.error(f"ફોટો અપલોડમાં તકલીફ: (શું તમે Supabase માં 'school_uploads' બકેટ બનાવ્યું છે?)")
+                                                                form_answers[q['name']] = file_obj.name # ફેલ થાય તો માત્ર નામ સેવ કરશે
+                                                        else:
+                                                            form_answers[q['name']] = ""
+                                                            
+                                                try: data_ws = sheet.worksheet(data_sheet_name)
+                                                except:
+                                                    data_ws = sheet.add_worksheet(title=data_sheet_name, rows="1000", cols="20")
+                                                    data_ws.append_row([q['name'] for q in questions_list], value_input_option='USER_ENTERED')
+                                                
+                                                row_data = ["" if form_answers.get(q['name']) is None else str(form_answers.get(q['name'])) for q in questions_list]
+                                                data_ws.append_row(row_data, value_input_option='USER_ENTERED')
+                                                st.success("✅ ડેટા અને ફોટો સફળતાપૂર્વક સેવ થઈ ગયો છે!")
 
                             # === TAB 2: ડેટા એડિટ ===
                             with tab_edit:

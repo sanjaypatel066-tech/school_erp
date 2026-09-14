@@ -11,33 +11,55 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import pandas as pd
 
-# 1. Page Config & CSS (Modern Mobile-App Aesthetic)
+# 1. Page Config & Premium Mobile-App Aesthetic CSS
 st.set_page_config(page_title="School ERP Pro", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
+    /* Main Background & Font */
     .stApp { background-color: #F8FAFC; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    
+    /* Premium Header */
     .premium-header {
         background: linear-gradient(135deg, #0A3663 0%, #1E3A8A 100%);
-        padding: 35px; border-radius: 0 0 30px 30px; color: white; text-align: center; margin-top: -60px; margin-bottom: 25px; box-shadow: 0 10px 25px rgba(10,54,99,0.15);
+        padding: 35px; border-radius: 0 0 30px 30px; color: white; text-align: center; 
+        margin-top: -60px; margin-bottom: 25px; box-shadow: 0 10px 25px rgba(10,54,99,0.15);
     }
-    .premium-header h2 { font-weight: 700; letter-spacing: 0.5px; margin-bottom: 5px; }
+    .premium-header h2 { font-weight: 700; letter-spacing: 0.5px; margin-bottom: 5px; color: #FFFFFF; }
+    .premium-header p { color: #E2E8F0; font-size: 15px; }
+
+    /* Modern Card Container (Forms & Expanders) */
     .stForm, div[data-testid="stExpander"] {
-        background-color: #FFFFFF; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #E2E8F0; margin-bottom: 25px;
+        background-color: #FFFFFF; padding: 30px; border-radius: 20px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #E2E8F0; margin-bottom: 25px;
     }
+
+    /* Inputs, Selectboxes & Textareas styling */
     div[data-baseweb="input"], div[data-baseweb="select"], textarea {
-        border-radius: 12px !important; border: 1.5px solid #CBD5E1 !important; background-color: #F8FAFC !important; transition: all 0.3s ease;
+        border-radius: 12px !important; border: 1.5px solid #CBD5E1 !important; 
+        background-color: #F8FAFC !important; transition: all 0.3s ease;
     }
     div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within, textarea:focus {
-        border-color: #0A3663 !important; box-shadow: 0 0 0 3px rgba(10, 54, 99, 0.12) !important; background-color: #FFFFFF !important;
+        border-color: #0A3663 !important; box-shadow: 0 0 0 3px rgba(10, 54, 99, 0.12) !important; 
+        background-color: #FFFFFF !important;
     }
+
+    /* Modern Rounded Buttons */
     .stButton > button {
-        width: 100%; background: linear-gradient(135deg, #16A34A 0%, #15803D 100%); color: white; border-radius: 30px; padding: 12px 24px; font-size: 16px; font-weight: bold; border: none; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.35); transition: all 0.3s ease;
+        width: 100%; background: linear-gradient(135deg, #16A34A 0%, #15803D 100%); 
+        color: white; border-radius: 30px; padding: 12px 24px; font-size: 16px; 
+        font-weight: bold; border: none; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.35); 
+        transition: all 0.3s ease;
     }
     .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(22, 163, 74, 0.45); }
+
+    /* Stylish Tabs */
     .stTabs [data-baseweb="tab-list"] { gap: 12px; background-color: white; padding: 12px; border-radius: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
     .stTabs [data-baseweb="tab"] { border-radius: 12px; padding: 10px 20px; font-weight: 600; color: #475569; }
     .stTabs [aria-selected="true"] { background-color: #0A3663 !important; color: white !important; box-shadow: 0 4px 12px rgba(10,54,99,0.2); }
+    
+    /* Sidebar styling enhancements */
+    [data-testid="stSidebar"] { background-color: #FFFFFF; border-right: 1px solid #E2E8F0; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -102,7 +124,7 @@ else:
                         
                         row_map = {}
                         setup_password = ""
-                        sheet_drive_folder_id = "" # શીટમાંથી ડ્રાઈવ ફોલ્ડર ID વાંચવા માટે
+                        sheet_drive_folder_id = ""
                         
                         for i, row in enumerate(setup_data):
                             if not row: continue
@@ -121,7 +143,7 @@ else:
                             elif "પાસવર્ડ" in header or "password" in header:
                                 if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
                                     setup_password = str(row[1]).strip()
-                            elif "folder" in header or "ફોલ્ડર" in header: # Setup શીટમાંથી ડ્રાઈવ ફોલ્ડર ID મેળવવા
+                            elif "folder" in header or "ફોલ્ડર" in header:
                                 if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
                                     sheet_drive_folder_id = str(row[1]).strip()
 
@@ -276,20 +298,24 @@ else:
                                                 for q in questions_list:
                                                     if q['type'] == "9":
                                                         file_obj = form_answers.get(q['name'])
-                                                        if file_obj and sheet_drive_folder_id:
-                                                            try:
-                                                                file_ext = file_obj.name.split('.')[-1]
-                                                                unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
-                                                                
-                                                                file_metadata = {'name': unique_name, 'parents': [sheet_drive_folder_id]}
-                                                                media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
-                                                                file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-                                                                
-                                                                img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
-                                                                form_answers[q['name']] = f'=IMAGE("{img_url}")'
-                                                            except Exception as e:
-                                                                st.error(f"ડ્રાઈવ એરર: {e}")
-                                                                form_answers[q['name']] = file_obj.name
+                                                        if file_obj:
+                                                            if sheet_drive_folder_id:
+                                                                try:
+                                                                    file_ext = file_obj.name.split('.')[-1]
+                                                                    unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
+                                                                    
+                                                                    file_metadata = {'name': unique_name, 'parents': [sheet_drive_folder_id]}
+                                                                    media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
+                                                                    file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+                                                                    
+                                                                    img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
+                                                                    form_answers[q['name']] = f'=IMAGE("{img_url}")'
+                                                                except Exception as e:
+                                                                    st.error(f"ડ્રાઈવ એરર: {e}")
+                                                                    form_answers[q['name']] = file_obj.name
+                                                            else:
+                                                                st.error("⚠️ Setup પાનામાં 'Drive Folder ID' મળ્યો નથી! કૃપા કરીને Setup શીટમાં ફોલ્ડર ID ઉમેરો.")
+                                                                form_answers[q['name']] = ""
                                                         else:
                                                             form_answers[q['name']] = ""
                                                             

@@ -11,45 +11,45 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import pandas as pd
 
-# તમારા Google Drive ફોલ્ડરનું ID અહીં પેસ્ટ કરો!
-DRIVE_FOLDER_ID = "તમારું_ફોલ્ડર_ID_અહીં_પેસ્ટ_કરો"
-
-# 1. Page Config & CSS
+# 1. Page Config & CSS (Modern Mobile-App Aesthetic)
 st.set_page_config(page_title="School ERP Pro", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
-    .stApp { background-color: #F0F4F8; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .stApp { background-color: #F8FAFC; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
     .premium-header {
-        background: linear-gradient(135deg, #0A3663 0%, #8B1B22 100%);
-        padding: 30px; border-radius: 0 0 25px 25px; color: white; text-align: center; margin-top: -60px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        background: linear-gradient(135deg, #0A3663 0%, #1E3A8A 100%);
+        padding: 35px; border-radius: 0 0 30px 30px; color: white; text-align: center; margin-top: -60px; margin-bottom: 25px; box-shadow: 0 10px 25px rgba(10,54,99,0.15);
     }
+    .premium-header h2 { font-weight: 700; letter-spacing: 0.5px; margin-bottom: 5px; }
     .stForm, div[data-testid="stExpander"] {
-        background-color: #FFFFFF; padding: 25px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.05); border: 1px solid #E2E8F0; margin-bottom: 20px;
+        background-color: #FFFFFF; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #E2E8F0; margin-bottom: 25px;
     }
     div[data-baseweb="input"], div[data-baseweb="select"], textarea {
-        border-radius: 10px !important; border: 1.5px solid #CBD5E1 !important; background-color: #F8FAFC !important; transition: all 0.3s ease;
+        border-radius: 12px !important; border: 1.5px solid #CBD5E1 !important; background-color: #F8FAFC !important; transition: all 0.3s ease;
     }
     div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within, textarea:focus {
-        border-color: #0A3663 !important; box-shadow: 0 0 0 3px rgba(10, 54, 99, 0.1) !important; background-color: #FFFFFF !important;
+        border-color: #0A3663 !important; box-shadow: 0 0 0 3px rgba(10, 54, 99, 0.12) !important; background-color: #FFFFFF !important;
     }
     .stButton > button {
-        width: 100%; background: linear-gradient(135deg, #22C55E 0%, #16A34A 100%); color: white; border-radius: 30px; padding: 10px 20px; font-size: 16px; font-weight: bold; border: none; box-shadow: 0 4px 10px rgba(34, 197, 94, 0.3); transition: all 0.2s;
+        width: 100%; background: linear-gradient(135deg, #16A34A 0%, #15803D 100%); color: white; border-radius: 30px; padding: 12px 24px; font-size: 16px; font-weight: bold; border: none; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.35); transition: all 0.3s ease;
     }
-    .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(34, 197, 94, 0.4); }
-    .stTabs [data-baseweb="tab-list"] { gap: 10px; background-color: white; padding: 10px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-    .stTabs [data-baseweb="tab"] { border-radius: 10px; padding: 8px 16px; }
-    .stTabs [aria-selected="true"] { background-color: #0A3663; color: white !important; }
+    .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(22, 163, 74, 0.45); }
+    .stTabs [data-baseweb="tab-list"] { gap: 12px; background-color: white; padding: 12px; border-radius: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+    .stTabs [data-baseweb="tab"] { border-radius: 12px; padding: 10px 20px; font-weight: 600; color: #475569; }
+    .stTabs [aria-selected="true"] { background-color: #0A3663 !important; color: white !important; box-shadow: 0 4px 12px rgba(10,54,99,0.2); }
     </style>
     """, unsafe_allow_html=True)
 
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
+if 'form_unlocked' not in st.session_state:
+    st.session_state.form_unlocked = False
 
 if not st.session_state.logged_in:
     login_form()
 else:
-    st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2991/2991148.png", width=100)
+    st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2991/2991148.png", width=90)
     st.sidebar.title(f"નમસ્તે, {st.session_state.name}")
     st.sidebar.markdown(f"**હોદ્દો:** {st.session_state.role}")
     
@@ -58,11 +58,12 @@ else:
         "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
-    if st.sidebar.button("લોગ આઉਟ", use_container_width=True):
+    if st.sidebar.button("લોગ આઉટ", use_container_width=True):
+        st.session_state.form_unlocked = False
         logout()
 
     if menu == "🏠 ડેશબોર્ડ":
-        st.markdown("<div class='premium-header'><h2>શાળા ડેશબોર્ડ</h2><p>સ્માર્ટ એજ્યુકેશન સિસ્ટમ</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='premium-header'><h2>શાળા ડેશબોર્ડ</h2><p>સ્માર્ટ એજ્યુકેશન મેનેજમેન્ટ સિસ્ટમ</p></div>", unsafe_allow_html=True)
         if st.session_state.role == "Principal":
             col1, col2, col3 = st.columns(3)
             col1.metric("શાળાના કુલ વિદ્યાર્થીઓ", "250", "+12")
@@ -74,7 +75,7 @@ else:
             col2.metric("તમારો આજનો તાસ", "ધોરણ ૬, ૭")
             
     elif menu == "✨ સ્માર્ટ એન્ટ્રી":
-        st.markdown("<div class='premium-header'><h2>✨ સ્માર્ટ ડાયનેમિક એન્ટ્રી</h2><p>Google Sheet આધારિત ફોર્મ</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='premium-header'><h2>✨ સ્માર્ટ ડાયનેમિક એન્ટ્રી</h2><p>Google Sheet આધારિત સ્માર્ટ ફોર્મ</p></div>", unsafe_allow_html=True)
         
         with st.spinner("ડેટાબેઝ સિંક થઈ રહ્યો છે..."):
             try:
@@ -100,6 +101,9 @@ else:
                         setup_data = setup_sheet.get_all_values()
                         
                         row_map = {}
+                        setup_password = ""
+                        sheet_drive_folder_id = "" # શીટમાંથી ડ્રાઈવ ફોલ્ડર ID વાંચવા માટે
+                        
                         for i, row in enumerate(setup_data):
                             if not row: continue
                             header = str(row[0]).strip().lower()
@@ -114,6 +118,25 @@ else:
                             elif "entry" in header: row_map['entry_mode'] = i
                             elif "edit" in header: row_map['edit_mode'] = i
                             elif "ફોર્મનો પ્રકાર" in header or "mode" in header: row_map['form_mode'] = i
+                            elif "પાસવર્ડ" in header or "password" in header:
+                                if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
+                                    setup_password = str(row[1]).strip()
+                            elif "folder" in header or "ફોલ્ડર" in header: # Setup શીટમાંથી ડ્રાઈવ ફોલ્ડર ID મેળવવા
+                                if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
+                                    sheet_drive_folder_id = str(row[1]).strip()
+
+                        # --- વન-ટાઇમ સેશન પાસવર્ડ ચેક ---
+                        if setup_password and not st.session_state.form_unlocked:
+                            st.warning("🔒 આ ફોર્મ સુરક્ષિત છે. એન્ટ્રી કરવા માટે પાસવર્ડ દાખલ કરો:")
+                            entered_pwd = st.text_input("ફોર્મ પાસવર્ડ નાખો:", type="password")
+                            if st.button("🔓 અનલોક કરો"):
+                                if entered_pwd == setup_password:
+                                    st.session_state.form_unlocked = True
+                                    st.success("✅ પાસવર્ડ સાચો છે! હવે ફોર્મ ખુલી ગયું છે.")
+                                    st.rerun()
+                                else:
+                                    st.error("❌ ખોટો પાસવર્ડ!")
+                            st.stop()
 
                         def get_mapped_val(key, col_idx, default=""):
                             if key not in row_map: return default
@@ -170,7 +193,10 @@ else:
                             with tab_new:
                                 unique_tabs = list(dict.fromkeys([q['tab'] for q in questions_list]))
                                 
-                                with st.form("dynamic_magic_form", clear_on_submit=True):
+                                if 'form_state_cache' not in st.session_state:
+                                    st.session_state.form_state_cache = {}
+
+                                with st.form("dynamic_magic_form"):
                                     st.markdown(f"<h2>📝 {selected_sheet_name}</h2>", unsafe_allow_html=True)
                                     form_answers = {}
                                     
@@ -190,6 +216,8 @@ else:
                                                             if q['default'].lower() == 'today': auto_val = datetime.date.today().strftime("%d-%m-%Y")
                                                             else: auto_val = q['default']
                                                         
+                                                        cached_val = st.session_state.form_state_cache.get(q['name'], auto_val)
+                                                        
                                                         if mode == "6":
                                                             form_answers[q['name']] = auto_val
                                                             continue
@@ -199,42 +227,46 @@ else:
                                                         display_name = f"{q['name']}{q_mark}"
                                                         
                                                         if is_locked:
-                                                            st.text_input(display_name, value=auto_val, disabled=True)
+                                                            st.text_input(display_name, value=auto_val, disabled=True, key=f"inp_{q['name']}")
                                                             form_answers[q['name']] = auto_val
                                                         else:
-                                                            if q['type'] == "1": form_answers[q['name']] = st.text_input(display_name, value=auto_val, help=q['help'])
-                                                            elif q['type'] == "2": form_answers[q['name']] = st.text_area(display_name, value=auto_val, help=q['help'])
-                                                            elif q['type'] == "3": form_answers[q['name']] = st.number_input(display_name, help=q['help'], step=1, min_value=0, value=None)
-                                                            elif q['type'] == "4": form_answers[q['name']] = st.date_input(display_name, help=q['help'])
+                                                            if q['type'] == "1": form_answers[q['name']] = st.text_input(display_name, value=str(cached_val) if not isinstance(cached_val, type(None)) else "", help=q['help'], key=f"inp_{q['name']}")
+                                                            elif q['type'] == "2": form_answers[q['name']] = st.text_area(display_name, value=str(cached_val) if not isinstance(cached_val, type(None)) else "", help=q['help'], key=f"inp_{q['name']}")
+                                                            elif q['type'] == "3": form_answers[q['name']] = st.number_input(display_name, help=q['help'], step=1, min_value=0, value=cached_val if isinstance(cached_val, (int, float)) else None, key=f"inp_{q['name']}")
+                                                            elif q['type'] == "4": form_answers[q['name']] = st.date_input(display_name, help=q['help'], key=f"inp_{q['name']}")
                                                             elif q['type'] == "5":
                                                                 opts = [o.strip() for o in q['options'].split(",")] if q['options'] else ["વિકલ્પો નથી"]
-                                                                form_answers[q['name']] = st.selectbox(display_name, opts, help=q['help'])
+                                                                form_answers[q['name']] = st.selectbox(display_name, opts, help=q['help'], key=f"inp_{q['name']}")
                                                             elif q['type'] == "6":
                                                                 opts = [o.strip() for o in q['options'].split(",")] if q['options'] else []
                                                                 if "અન્ય" not in opts: opts.append("અન્ય")
-                                                                choice = st.selectbox(display_name, opts, help=q['help'])
-                                                                if choice == "અન્ય": form_answers[q['name']] = st.text_input(f"કૃપા કરીને '{q['name']}' ટાઈપ કરો:")
+                                                                choice = st.selectbox(display_name, opts, help=q['help'], key=f"inp_{q['name']}")
+                                                                if choice == "અન્ય": form_answers[q['name']] = st.text_input(f"કૃપા કરીને '{q['name']}' ટાઈપ કરો:", key=f"inp_other_{q['name']}")
                                                                 else: form_answers[q['name']] = choice
                                                             elif q['type'] == "7":
-                                                                switch_val = st.toggle(display_name, help=q['help'])
+                                                                switch_val = st.toggle(display_name, help=q['help'], key=f"inp_{q['name']}")
                                                                 form_answers[q['name']] = "હા" if switch_val else "ના"
-                                                            elif q['type'] == "8": form_answers[q['name']] = st.time_input(display_name, help=q['help'])
+                                                            elif q['type'] == "8": form_answers[q['name']] = st.time_input(display_name, help=q['help'], key=f"inp_{q['name']}")
                                                             elif q['type'] == "9":
-                                                                f_up = st.file_uploader(display_name, type=["png", "jpg", "jpeg", "pdf"], help=q['help'])
+                                                                f_up = st.file_uploader(display_name, type=["png", "jpg", "jpeg", "pdf"], help=q['help'], key=f"inp_{q['name']}")
                                                                 form_answers[q['name']] = f_up
-                                                            elif q['type'] == "10": form_answers[q['name']] = st.text_input(display_name, value=auto_val, help="અહીં લિંક પેસ્ટ કરો")
+                                                            elif q['type'] == "10": form_answers[q['name']] = st.text_input(display_name, value=str(cached_val), help="અહીં લિંક પેસ્ટ કરો", key=f"inp_{q['name']}")
                                                             elif q['type'] == "11":
-                                                                st.text_input(display_name, value="Auto Generated", disabled=True)
+                                                                st.text_input(display_name, value="Auto Generated", disabled=True, key=f"inp_{q['name']}")
                                                                 form_answers[q['name']] = "Auto"
                                                             elif q['type'] == "12":
-                                                                val = st.text_input(display_name, value=auto_val, help=q['help'] + " (ફક્ત આંકડા જ લખો)")
+                                                                val = st.text_input(display_name, value=str(cached_val) if not isinstance(cached_val, type(None)) else "", help=q['help'] + " (ફક્ત આંકડા જ લખો)", key=f"inp_{q['name']}")
                                                                 if val and not val.isdigit() and val != "": st.warning(f"⚠️ કૃપા કરીને '{q['name']}' માં ફક્ત આંકડા જ લખો.")
                                                                 form_answers[q['name']] = val
-                                                            else: form_answers[q['name']] = st.text_input(display_name, value=auto_val, help=q['help'])
+                                                            else: form_answers[q['name']] = st.text_input(display_name, value=str(cached_val), help=q['help'], key=f"inp_{q['name']}")
                                                                     
                                     st.markdown("<br>", unsafe_allow_html=True)
                                     submitted = st.form_submit_button("✅ ડેટા સેવ કરો")
                                     
+                                    for q_k, q_v in form_answers.items():
+                                        if not hasattr(q_v, "read"):
+                                            st.session_state.form_state_cache[q_k] = q_v
+
                                     if submitted:
                                         missing = [q['name'] for q in questions_list if q['mandatory'] and q['entry_mode'] == "1" and (form_answers.get(q['name']) is None or (isinstance(form_answers.get(q['name']), str) and str(form_answers.get(q['name'])).strip() == ""))]
                                         if missing:
@@ -244,19 +276,19 @@ else:
                                                 for q in questions_list:
                                                     if q['type'] == "9":
                                                         file_obj = form_answers.get(q['name'])
-                                                        if file_obj and DRIVE_FOLDER_ID != "1WdU4f1b3R166DoBDaPfVN2qtgkUKum93ો":
+                                                        if file_obj and sheet_drive_folder_id:
                                                             try:
                                                                 file_ext = file_obj.name.split('.')[-1]
                                                                 unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
                                                                 
-                                                                file_metadata = {'name': unique_name, 'parents': [DRIVE_FOLDER_ID]}
+                                                                file_metadata = {'name': unique_name, 'parents': [sheet_drive_folder_id]}
                                                                 media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
                                                                 file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
                                                                 
                                                                 img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
                                                                 form_answers[q['name']] = f'=IMAGE("{img_url}")'
                                                             except Exception as e:
-                                                                st.error("ડ્રાઈવમાં ફોટો સેવ ના થયો.")
+                                                                st.error(f"ડ્રાઈવ એરર: {e}")
                                                                 form_answers[q['name']] = file_obj.name
                                                         else:
                                                             form_answers[q['name']] = ""
@@ -268,6 +300,8 @@ else:
                                                 
                                                 row_data = ["" if form_answers.get(q['name']) is None else str(form_answers.get(q['name'])) for q in questions_list]
                                                 data_ws.append_row(row_data, value_input_option='USER_ENTERED')
+                                                
+                                                st.session_state.form_state_cache = {}
                                                 st.success(f"✅ ડેટા સફળતાપૂર્વક '{data_sheet_name}' માં સેવ થઈ ગયો છે!")
 
                             with tab_edit:
@@ -293,18 +327,18 @@ else:
                                                     mode = q['edit_mode']
                                                     if mode == "6": edit_answers[col_name] = old_val
                                                     elif mode in ["2", "3", "4", "5"]:
-                                                        st.text_input(f"{col_name} (લોક)", value=old_val, disabled=True)
+                                                        st.text_input(f"{col_name} (લોક)", value=old_val, disabled=True, key=f"edit_lock_{col_name}")
                                                         edit_answers[col_name] = old_val
                                                     elif q['type'] == "9": 
                                                         if old_val and "=IMAGE" in old_val:
                                                             st.markdown(f"**{col_name}**: (પહેલેથી ફોટો સેવ છે)")
                                                         else:
                                                             st.markdown(f"**{col_name}**: (કોઈ ફોટો નથી)")
-                                                        f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_{col_name}")
+                                                        f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_file_{col_name}")
                                                         edit_answers[col_name] = f_up if f_up else old_val
-                                                    else: edit_answers[col_name] = st.text_input(col_name, value=old_val)
+                                                    else: edit_answers[col_name] = st.text_input(col_name, value=old_val, key=f"edit_txt_{col_name}")
                                                 else:
-                                                    st.text_input(f"{col_name} (જૂનો ડેટા)", value=old_val, disabled=True)
+                                                    st.text_input(f"{col_name} (જૂનો ડેટા)", value=old_val, disabled=True, key=f"edit_old_{col_name}")
                                                     edit_answers[col_name] = old_val
                                                     
                                             if st.form_submit_button("💾 સુધારા સેવ કરો"):
@@ -315,7 +349,7 @@ else:
                                                             try:
                                                                 file_ext = ans.name.split('.')[-1]
                                                                 unique_name = f"{int(datetime.datetime.now().timestamp())}_edit.{file_ext}"
-                                                                file_metadata = {'name': unique_name, 'parents': [DRIVE_FOLDER_ID]}
+                                                                file_metadata = {'name': unique_name, 'parents': [sheet_drive_folder_id]}
                                                                 media = MediaIoBaseUpload(io.BytesIO(ans.getvalue()), mimetype=ans.type, resumable=True)
                                                                 file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
                                                                 
@@ -325,7 +359,7 @@ else:
                                                     
                                                     update_data = [edit_answers.get(c, "") for c in all_records[0]]
                                                     sheet.values_update(f"{data_sheet_name}!A{selected_idx + 2}:Z{selected_idx + 2}", params={'valueInputOption': 'USER_ENTERED'}, body={'values': [update_data]})
-                                                    st.success("✅ ડેટા સુધરી ગયો છે!")
+                                                    st.success("✅ ડેટા સફળતાપૂર્વક સુધરી ગયો છે!")
                                     else: st.info("કોઈ જૂનો ડેટા નથી.")
                                 except: st.warning(f"હજુ '{data_sheet_name}' માં કોઈ ડેટા સેવ થયો નથી.")
                         else: st.warning("⚠️ Setup પાનામાં પ્રશ્નો મળતા નથી.")

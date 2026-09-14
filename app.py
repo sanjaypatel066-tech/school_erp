@@ -90,7 +90,11 @@ else:
             try:
                 raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
                 creds_dict = json.loads(raw_creds, strict=False) 
-                scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+                scopes = [
+                    "https://www.googleapis.com/auth/spreadsheets",
+                    "https://www.googleapis.com/auth/drive",
+                    "https://www.googleapis.com/auth/drive.file"
+                ]
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
                 client = gspread.authorize(creds)
                 drive_service = build('drive', 'v3', credentials=creds)
@@ -111,7 +115,7 @@ else:
                         
                         row_map = {}
                         setup_password = ""
-                        global_folder_id = "" # ગ્લોબલ ફોલ્ડર ID શોધવા માટે
+                        global_folder_id = "1WdU4f1b3R166DoBDaPfVN2qtgkUKum93"
                         
                         for i, row in enumerate(setup_data):
                             if not row: continue
@@ -131,17 +135,11 @@ else:
                                 if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
                                     setup_password = str(row[1]).strip()
                             
-                            # આખી રો માંથી कहीं पर भी Folder ID शोधવા માટેનું સ્માર્ટ લોજીક
                             for cell in row:
                                 if "folder id" in str(cell).strip().lower():
-                                    # તેની બાજુના સેલમાંથી ID શોધી કાઢવી
                                     cell_idx = row.index(cell)
                                     if cell_idx + 1 < len(row) and str(row[cell_idx + 1]).strip() not in ["", "-"]:
                                         global_folder_id = str(row[cell_idx + 1]).strip()
-
-                        # જો ઉપર ન મળે તો તમારા ફોટાવાળા ફોલ્ડરની ID ડાયરેક્ટ બેકઅપ તરીકે
-                        if not global_folder_id:
-                            global_folder_id = "1WdU4f1b3R166DoBDaPfVN2qtgkUKum93"
 
                         # --- વન-ટાઇમ સેશન પાસવર્ડ ચેક ---
                         if setup_password and not st.session_state.form_unlocked:
@@ -295,23 +293,19 @@ else:
                                                     if q['type'] == "9":
                                                         file_obj = form_answers.get(q['name'])
                                                         if file_obj:
-                                                            if global_folder_id:
-                                                                try:
-                                                                    file_ext = file_obj.name.split('.')[-1]
-                                                                    unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
-                                                                    
-                                                                    file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
-                                                                    media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
-                                                                    file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-                                                                    
-                                                                    img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
-                                                                    form_answers[q['name']] = f'=IMAGE("{img_url}")'
-                                                                except Exception as e:
-                                                                    st.error(f"ડ્રાઈવ એરર: {e}")
-                                                                    form_answers[q['name']] = file_obj.name
-                                                            else:
-                                                                st.error("⚠️ Setup પાનામાં Folder ID મળ્યો નથી!")
-                                                                form_answers[q['name']] = ""
+                                                            try:
+                                                                file_ext = file_obj.name.split('.')[-1]
+                                                                unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
+                                                                
+                                                                file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
+                                                                media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
+                                                                file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+                                                                
+                                                                img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
+                                                                form_answers[q['name']] = f'=IMAGE("{img_url}")'
+                                                            except Exception as e:
+                                                                st.error(f"ડ્રાઈવ એરર: {e}")
+                                                                form_answers[q['name']] = file_obj.name
                                                         else:
                                                             form_answers[q['name']] = ""
                                                             
@@ -371,15 +365,12 @@ else:
                                                             try:
                                                                 file_ext = ans.name.split('.')[-1]
                                                                 unique_name = f"{int(datetime.datetime.now().timestamp())}_edit.{file_ext}"
-                                                                if global_folder_id:
-                                                                    file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
-                                                                    media = MediaIoBaseUpload(io.BytesIO(ans.getvalue()), mimetype=ans.type, resumable=True)
-                                                                    file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-                                                                    
-                                                                    img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
-                                                                    edit_answers[col_name] = f'=IMAGE("{img_url}")'
-                                                                else:
-                                                                    edit_answers[col_name] = ans.name
+                                                                file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
+                                                                media = MediaIoBaseUpload(io.BytesIO(ans.getvalue()), mimetype=ans.type, resumable=True)
+                                                                file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+                                                                
+                                                                img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
+                                                                edit_answers[col_name] = f'=IMAGE("{img_url}")'
                                                             except: edit_answers[col_name] = ans.name
                                                     
                                                     update_data = [edit_answers.get(c, "") for c in all_records[0]]

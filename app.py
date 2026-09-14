@@ -11,7 +11,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import pandas as pd
 
-# 1. Page Config & Clean Modern UI/UX (No Old-Fashioned Fonts)
+# 1. Page Config & Clean Modern UI/UX (Standard Sans-Serif Fonts)
 st.set_page_config(page_title="School ERP Pro", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
@@ -315,7 +315,7 @@ else:
                                                                     st.error(f"ડ્રાઈવ એરર: {e}")
                                                                     form_answers[q['name']] = file_obj.name
                                                             else:
-                                                                st.error(f"⚠️ '{q['name']}' માટે Setup પાનામાં Drive Folder ID મળ્યો નથી!")
+                                                                st.error(f"⚠️ '{q['name']}' માટે Setup પાનામાં Folder ID મળ્યો નથી!")
                                                                 form_answers[q['name']] = ""
                                                         else:
                                                             form_answers[q['name']] = ""

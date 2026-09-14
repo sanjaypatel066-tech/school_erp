@@ -11,54 +11,56 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import pandas as pd
 
-# 1. Page Config & Premium Mobile-App Aesthetic CSS
+# 1. Page Config & Clean Modern UI/UX (No Old-Fashioned Fonts)
 st.set_page_config(page_title="School ERP Pro", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
-    /* Main Background & Font */
-    .stApp { background-color: #F8FAFC; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    /* Clean Standard App Font & Background */
+    .stApp { 
+        background-color: #F8FAFC; 
+    }
     
     /* Premium Header */
     .premium-header {
         background: linear-gradient(135deg, #0A3663 0%, #1E3A8A 100%);
-        padding: 35px; border-radius: 0 0 30px 30px; color: white; text-align: center; 
-        margin-top: -60px; margin-bottom: 25px; box-shadow: 0 10px 25px rgba(10,54,99,0.15);
+        padding: 30px; border-radius: 0 0 24px 24px; color: white; text-align: center; 
+        margin-top: -60px; margin-bottom: 25px; box-shadow: 0 8px 20px rgba(10,54,99,0.15);
     }
-    .premium-header h2 { font-weight: 700; letter-spacing: 0.5px; margin-bottom: 5px; color: #FFFFFF; }
-    .premium-header p { color: #E2E8F0; font-size: 15px; }
+    .premium-header h2 { font-weight: 700; font-size: 24px; color: #FFFFFF; margin-bottom: 4px; }
+    .premium-header p { color: #E2E8F0; font-size: 14px; font-weight: 400; }
 
-    /* Modern Card Container (Forms & Expanders) */
+    /* Modern Card Containers */
     .stForm, div[data-testid="stExpander"] {
-        background-color: #FFFFFF; padding: 30px; border-radius: 20px; 
-        box-shadow: 0 10px 30px rgba(0,0,0,0.04); border: 1px solid #E2E8F0; margin-bottom: 25px;
+        background-color: #FFFFFF; padding: 25px; border-radius: 16px; 
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #E2E8F0; margin-bottom: 20px;
     }
 
-    /* Inputs, Selectboxes & Textareas styling */
+    /* Form Inputs, Selectboxes, Textareas */
     div[data-baseweb="input"], div[data-baseweb="select"], textarea {
-        border-radius: 12px !important; border: 1.5px solid #CBD5E1 !important; 
-        background-color: #F8FAFC !important; transition: all 0.3s ease;
+        border-radius: 10px !important; border: 1.5px solid #CBD5E1 !important; 
+        background-color: #F8FAFC !important; font-size: 14px !important; transition: all 0.2s ease;
     }
     div[data-baseweb="input"]:focus-within, div[data-baseweb="select"]:focus-within, textarea:focus {
-        border-color: #0A3663 !important; box-shadow: 0 0 0 3px rgba(10, 54, 99, 0.12) !important; 
+        border-color: #0A3663 !important; box-shadow: 0 0 0 3px rgba(10, 54, 99, 0.1) !important; 
         background-color: #FFFFFF !important;
     }
 
     /* Modern Rounded Buttons */
     .stButton > button {
         width: 100%; background: linear-gradient(135deg, #16A34A 0%, #15803D 100%); 
-        color: white; border-radius: 30px; padding: 12px 24px; font-size: 16px; 
-        font-weight: bold; border: none; box-shadow: 0 4px 15px rgba(22, 163, 74, 0.35); 
-        transition: all 0.3s ease;
+        color: white; border-radius: 25px; padding: 10px 20px; font-size: 15px; 
+        font-weight: 600; border: none; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3); 
+        transition: all 0.2s ease;
     }
-    .stButton > button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(22, 163, 74, 0.45); }
+    .stButton > button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22, 163, 74, 0.4); }
 
     /* Stylish Tabs */
-    .stTabs [data-baseweb="tab-list"] { gap: 12px; background-color: white; padding: 12px; border-radius: 18px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-    .stTabs [data-baseweb="tab"] { border-radius: 12px; padding: 10px 20px; font-weight: 600; color: #475569; }
-    .stTabs [aria-selected="true"] { background-color: #0A3663 !important; color: white !important; box-shadow: 0 4px 12px rgba(10,54,99,0.2); }
-    
-    /* Sidebar styling enhancements */
+    .stTabs [data-baseweb="tab-list"] { gap: 8px; background-color: #F1F5F9; padding: 8px; border-radius: 14px; }
+    .stTabs [data-baseweb="tab"] { border-radius: 10px; padding: 8px 16px; font-weight: 500; font-size: 14px; color: #334155; }
+    .stTabs [aria-selected="true"] { background-color: #0A3663 !important; color: white !important; box-shadow: 0 2px 8px rgba(10,54,99,0.25); }
+
+    /* Sidebar Styling */
     [data-testid="stSidebar"] { background-color: #FFFFFF; border-right: 1px solid #E2E8F0; }
     </style>
     """, unsafe_allow_html=True)
@@ -71,7 +73,7 @@ if 'form_unlocked' not in st.session_state:
 if not st.session_state.logged_in:
     login_form()
 else:
-    st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2991/2991148.png", width=90)
+    st.sidebar.image("https://cdn-icons-png.flaticon.com/512/2991/2991148.png", width=80)
     st.sidebar.title(f"નમસ્તે, {st.session_state.name}")
     st.sidebar.markdown(f"**હોદ્દો:** {st.session_state.role}")
     
@@ -124,7 +126,6 @@ else:
                         
                         row_map = {}
                         setup_password = ""
-                        sheet_drive_folder_id = ""
                         
                         for i, row in enumerate(setup_data):
                             if not row: continue
@@ -143,9 +144,7 @@ else:
                             elif "પાસવર્ડ" in header or "password" in header:
                                 if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
                                     setup_password = str(row[1]).strip()
-                            elif "folder" in header or "ફોલ્ડર" in header:
-                                if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
-                                    sheet_drive_folder_id = str(row[1]).strip()
+                            elif "folder" in header or "ફોલ્ડર" in header: row_map['folder_id'] = i
 
                         # --- વન-ટાઇમ સેશન પાસવર્ડ ચેક ---
                         if setup_password and not st.session_state.form_unlocked:
@@ -190,13 +189,14 @@ else:
                                     entry_mode = get_mapped_val('entry_mode', col_idx, "1").split()[0]
                                     edit_mode = get_mapped_val('edit_mode', col_idx, "1").split()[0]
                                     q_type = get_mapped_val('type', col_idx, "1").split()[0]
+                                    col_folder_id = get_mapped_val('folder_id', col_idx, "")
                                     
                                     questions_list.append({
                                         "name": q_name, "type": q_type, "options": get_mapped_val('options', col_idx, ""),
                                         "tab": get_mapped_val('tab', col_idx, "સામાન્ય માહિતી"), "help": get_mapped_val('help', col_idx, ""),
                                         "mandatory": get_mapped_val('mandatory', col_idx, "no").lower() in ['હા', 'yes', 'true'],
                                         "default": get_mapped_val('default', col_idx, ""), "order": order_num,
-                                        "entry_mode": entry_mode, "edit_mode": edit_mode
+                                        "entry_mode": entry_mode, "edit_mode": edit_mode, "folder_id": col_folder_id
                                     })
                             
                             questions_list = sorted(questions_list, key=lambda x: x['order'])
@@ -299,12 +299,13 @@ else:
                                                     if q['type'] == "9":
                                                         file_obj = form_answers.get(q['name'])
                                                         if file_obj:
-                                                            if sheet_drive_folder_id:
+                                                            col_f_id = q.get('folder_id')
+                                                            if col_f_id:
                                                                 try:
                                                                     file_ext = file_obj.name.split('.')[-1]
                                                                     unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
                                                                     
-                                                                    file_metadata = {'name': unique_name, 'parents': [sheet_drive_folder_id]}
+                                                                    file_metadata = {'name': unique_name, 'parents': [col_f_id]}
                                                                     media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
                                                                     file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
                                                                     
@@ -314,7 +315,7 @@ else:
                                                                     st.error(f"ડ્રાઈવ એરર: {e}")
                                                                     form_answers[q['name']] = file_obj.name
                                                             else:
-                                                                st.error("⚠️ Setup પાનામાં 'Drive Folder ID' મળ્યો નથી! કૃપા કરીને Setup શીટમાં ફોલ્ડર ID ઉમેરો.")
+                                                                st.error(f"⚠️ '{q['name']}' માટે Setup પાનામાં Drive Folder ID મળ્યો નથી!")
                                                                 form_answers[q['name']] = ""
                                                         else:
                                                             form_answers[q['name']] = ""
@@ -375,12 +376,16 @@ else:
                                                             try:
                                                                 file_ext = ans.name.split('.')[-1]
                                                                 unique_name = f"{int(datetime.datetime.now().timestamp())}_edit.{file_ext}"
-                                                                file_metadata = {'name': unique_name, 'parents': [sheet_drive_folder_id]}
-                                                                media = MediaIoBaseUpload(io.BytesIO(ans.getvalue()), mimetype=ans.type, resumable=True)
-                                                                file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-                                                                
-                                                                img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
-                                                                edit_answers[col_name] = f'=IMAGE("{img_url}")'
+                                                                col_f_id = q.get('folder_id') if q else ""
+                                                                if col_f_id:
+                                                                    file_metadata = {'name': unique_name, 'parents': [col_f_id]}
+                                                                    media = MediaIoBaseUpload(io.BytesIO(ans.getvalue()), mimetype=ans.type, resumable=True)
+                                                                    file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+                                                                    
+                                                                    img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
+                                                                    edit_answers[col_name] = f'=IMAGE("{img_url}")'
+                                                                else:
+                                                                    edit_answers[col_name] = ans.name
                                                             except: edit_answers[col_name] = ans.name
                                                     
                                                     update_data = [edit_answers.get(c, "") for c in all_records[0]]

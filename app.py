@@ -11,17 +11,12 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import pandas as pd
 
-# 1. Page Config & Clean Modern UI/UX (Standard Sans-Serif Fonts)
+# 1. Page Config & Clean Modern UI/UX
 st.set_page_config(page_title="School ERP Pro", layout="wide", initial_sidebar_state="expanded")
 
 st.markdown("""
     <style>
-    /* Clean Standard App Font & Background */
-    .stApp { 
-        background-color: #F8FAFC; 
-    }
-    
-    /* Premium Header */
+    .stApp { background-color: #F8FAFC; }
     .premium-header {
         background: linear-gradient(135deg, #0A3663 0%, #1E3A8A 100%);
         padding: 30px; border-radius: 0 0 24px 24px; color: white; text-align: center; 
@@ -29,14 +24,10 @@ st.markdown("""
     }
     .premium-header h2 { font-weight: 700; font-size: 24px; color: #FFFFFF; margin-bottom: 4px; }
     .premium-header p { color: #E2E8F0; font-size: 14px; font-weight: 400; }
-
-    /* Modern Card Containers */
     .stForm, div[data-testid="stExpander"] {
         background-color: #FFFFFF; padding: 25px; border-radius: 16px; 
         box-shadow: 0 4px 20px rgba(0,0,0,0.03); border: 1px solid #E2E8F0; margin-bottom: 20px;
     }
-
-    /* Form Inputs, Selectboxes, Textareas */
     div[data-baseweb="input"], div[data-baseweb="select"], textarea {
         border-radius: 10px !important; border: 1.5px solid #CBD5E1 !important; 
         background-color: #F8FAFC !important; font-size: 14px !important; transition: all 0.2s ease;
@@ -45,8 +36,6 @@ st.markdown("""
         border-color: #0A3663 !important; box-shadow: 0 0 0 3px rgba(10, 54, 99, 0.1) !important; 
         background-color: #FFFFFF !important;
     }
-
-    /* Modern Rounded Buttons */
     .stButton > button {
         width: 100%; background: linear-gradient(135deg, #16A34A 0%, #15803D 100%); 
         color: white; border-radius: 25px; padding: 10px 20px; font-size: 15px; 
@@ -54,13 +43,9 @@ st.markdown("""
         transition: all 0.2s ease;
     }
     .stButton > button:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(22, 163, 74, 0.4); }
-
-    /* Stylish Tabs */
     .stTabs [data-baseweb="tab-list"] { gap: 8px; background-color: #F1F5F9; padding: 8px; border-radius: 14px; }
     .stTabs [data-baseweb="tab"] { border-radius: 10px; padding: 8px 16px; font-weight: 500; font-size: 14px; color: #334155; }
     .stTabs [aria-selected="true"] { background-color: #0A3663 !important; color: white !important; box-shadow: 0 2px 8px rgba(10,54,99,0.25); }
-
-    /* Sidebar Styling */
     [data-testid="stSidebar"] { background-color: #FFFFFF; border-right: 1px solid #E2E8F0; }
     </style>
     """, unsafe_allow_html=True)
@@ -126,6 +111,7 @@ else:
                         
                         row_map = {}
                         setup_password = ""
+                        global_folder_id = "" # ગ્લોબલ ફોલ્ડર ID શોધવા માટે
                         
                         for i, row in enumerate(setup_data):
                             if not row: continue
@@ -144,7 +130,18 @@ else:
                             elif "પાસવર્ડ" in header or "password" in header:
                                 if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
                                     setup_password = str(row[1]).strip()
-                            elif "folder" in header or "ફોલ્ડર" in header: row_map['folder_id'] = i
+                            
+                            # આખી રો માંથી कहीं पर भी Folder ID शोधવા માટેનું સ્માર્ટ લોજીક
+                            for cell in row:
+                                if "folder id" in str(cell).strip().lower():
+                                    # તેની બાજુના સેલમાંથી ID શોધી કાઢવી
+                                    cell_idx = row.index(cell)
+                                    if cell_idx + 1 < len(row) and str(row[cell_idx + 1]).strip() not in ["", "-"]:
+                                        global_folder_id = str(row[cell_idx + 1]).strip()
+
+                        # જો ઉપર ન મળે તો તમારા ફોટાવાળા ફોલ્ડરની ID ડાયરેક્ટ બેકઅપ તરીકે
+                        if not global_folder_id:
+                            global_folder_id = "1WdU4f1b3R166DoBDaPfVN2qtgkUKum93"
 
                         # --- વન-ટાઇમ સેશન પાસવર્ડ ચેક ---
                         if setup_password and not st.session_state.form_unlocked:
@@ -189,14 +186,13 @@ else:
                                     entry_mode = get_mapped_val('entry_mode', col_idx, "1").split()[0]
                                     edit_mode = get_mapped_val('edit_mode', col_idx, "1").split()[0]
                                     q_type = get_mapped_val('type', col_idx, "1").split()[0]
-                                    col_folder_id = get_mapped_val('folder_id', col_idx, "")
                                     
                                     questions_list.append({
                                         "name": q_name, "type": q_type, "options": get_mapped_val('options', col_idx, ""),
                                         "tab": get_mapped_val('tab', col_idx, "સામાન્ય માહિતી"), "help": get_mapped_val('help', col_idx, ""),
                                         "mandatory": get_mapped_val('mandatory', col_idx, "no").lower() in ['હા', 'yes', 'true'],
                                         "default": get_mapped_val('default', col_idx, ""), "order": order_num,
-                                        "entry_mode": entry_mode, "edit_mode": edit_mode, "folder_id": col_folder_id
+                                        "entry_mode": entry_mode, "edit_mode": edit_mode
                                     })
                             
                             questions_list = sorted(questions_list, key=lambda x: x['order'])
@@ -299,13 +295,12 @@ else:
                                                     if q['type'] == "9":
                                                         file_obj = form_answers.get(q['name'])
                                                         if file_obj:
-                                                            col_f_id = q.get('folder_id')
-                                                            if col_f_id:
+                                                            if global_folder_id:
                                                                 try:
                                                                     file_ext = file_obj.name.split('.')[-1]
                                                                     unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
                                                                     
-                                                                    file_metadata = {'name': unique_name, 'parents': [col_f_id]}
+                                                                    file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
                                                                     media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
                                                                     file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
                                                                     
@@ -315,7 +310,7 @@ else:
                                                                     st.error(f"ડ્રાઈવ એરર: {e}")
                                                                     form_answers[q['name']] = file_obj.name
                                                             else:
-                                                                st.error(f"⚠️ '{q['name']}' માટે Setup પાનામાં Folder ID મળ્યો નથી!")
+                                                                st.error("⚠️ Setup પાનામાં Folder ID મળ્યો નથી!")
                                                                 form_answers[q['name']] = ""
                                                         else:
                                                             form_answers[q['name']] = ""
@@ -376,9 +371,8 @@ else:
                                                             try:
                                                                 file_ext = ans.name.split('.')[-1]
                                                                 unique_name = f"{int(datetime.datetime.now().timestamp())}_edit.{file_ext}"
-                                                                col_f_id = q.get('folder_id') if q else ""
-                                                                if col_f_id:
-                                                                    file_metadata = {'name': unique_name, 'parents': [col_f_id]}
+                                                                if global_folder_id:
+                                                                    file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
                                                                     media = MediaIoBaseUpload(io.BytesIO(ans.getvalue()), mimetype=ans.type, resumable=True)
                                                                     file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
                                                                     

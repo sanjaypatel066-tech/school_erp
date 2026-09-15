@@ -416,9 +416,10 @@ else:
                                         st.markdown(f"**{h}:** {row[h]}")
                             with col_img:
                                 photo_val = ""
-                                for h in headers:
-                                    if "photo" in h.lower() or "ફોટો" in h.lower():
-                                        photo_val = str(row[h])
+                                for h, val in row.items():
+                                    val_str = str(val)
+                                    if "http" in val_str or "IMAGE" in val_str or "drive.google.com" in val_str:
+                                        photo_val = val_str
                                         break
                                 
                                 if photo_val:

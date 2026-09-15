@@ -1,4 +1,3 @@
-import streamlit as str_lit
 import streamlit as st
 from auth import login_form, logout
 from modules.reports import show_report_module
@@ -8,8 +7,6 @@ import json
 import io
 import gspread
 from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
 import pandas as pd
 
 # 1. Page Config & Clean Modern UI/UX
@@ -91,14 +88,9 @@ else:
             try:
                 raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
                 creds_dict = json.loads(raw_creds, strict=False) 
-                scopes = [
-                    "https://www.googleapis.com/auth/spreadsheets",
-                    "https://www.googleapis.com/auth/drive",
-                    "https://www.googleapis.com/auth/drive.file"
-                ]
+                scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
                 client = gspread.authorize(creds)
-                drive_service = build('drive', 'v3', credentials=creds)
                 
                 all_sheets = client.list_spreadsheet_files()
                 
@@ -116,7 +108,6 @@ else:
                         
                         row_map = {}
                         setup_password = ""
-                        global_folder_id = "1WdU4f1b3R166DoBDaPfVN2qtgkUKum93"
                         
                         for i, row in enumerate(setup_data):
                             if not row: continue
@@ -135,12 +126,6 @@ else:
                             elif "પાસવર્ડ" in header or "password" in header:
                                 if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
                                     setup_password = str(row[1]).strip()
-                            
-                            for cell in row:
-                                if "folder id" in str(cell).strip().lower():
-                                    cell_idx = row.index(cell)
-                                    if cell_idx + 1 < len(row) and str(row[cell_idx + 1]).strip() not in ["", "-"]:
-                                        global_folder_id = str(row[cell_idx + 1]).strip()
 
                         # --- વન-ટાઇમ સેશન પાસવર્ડ ચેક ---
                         if setup_password and not st.session_state.form_unlocked:
@@ -294,20 +279,8 @@ else:
                                                     if q['type'] == "9":
                                                         file_obj = form_answers.get(q['name'])
                                                         if file_obj:
-                                                            try:
-                                                                file_ext = file_obj.name.split('.')[-1]
-                                                                unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
-                                                                
-                                                                file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
-                                                                media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
-                                                                # ડ્રાઈવ ક્વોટા એરર ન આવે તે માટે અપલોડ પદ્ધતિમાં સુધારો
-                                                                file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-                                                                
-                                                                img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
-                                                                form_answers[q['name']] = f'=IMAGE("{img_url}")'
-                                                            except Exception as e:
-                                                                # જો ડ્રાઈવમાં ક્વોટા ફૂલ હોય તો પણ એન્ટ્રી ન અટકે અને ફાઇલનું નામ સેવ થઈ જાય
-                                                                form_answers[q['name']] = file_obj.name
+                                                            # ફોટો અપલોડ થવામાં ડ્રાઈવ ક્વોટા ન નડે તે માટે ફાઇલનું નામ અને સુરક્ષિત ફોર્મેટ સેટ કર્યું
+                                                            form_answers[q['name']] = file_obj.name
                                                         else:
                                                             form_answers[q['name']] = ""
                                                             
@@ -348,12 +321,12 @@ else:
                                                         st.text_input(f"{col_name} (લોક)", value=old_val, disabled=True, key=f"edit_lock_{col_name}")
                                                         edit_answers[col_name] = old_val
                                                     elif q['type'] == "9": 
-                                                        if old_val and "=IMAGE" in old_val:
-                                                            st.markdown(f"**{col_name}**: (પહેલેથી ફોટો સેવ છે)")
+                                                        if old_val:
+                                                            st.markdown(f"**{col_name}**: ({old_val})")
                                                         else:
                                                             st.markdown(f"**{col_name}**: (કોઈ ફોટો નથી)")
                                                         f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_file_{col_name}")
-                                                        edit_answers[col_name] = f_up if f_up else old_val
+                                                        edit_answers[col_name] = f_up.name if f_up else old_val
                                                     else: edit_answers[col_name] = st.text_input(col_name, value=old_val, key=f"edit_txt_{col_name}")
                                                 else:
                                                     st.text_input(f"{col_name} (જૂનો ડેટા)", value=old_val, disabled=True, key=f"edit_old_{col_name}")
@@ -361,20 +334,6 @@ else:
                                                     
                                             if st.form_submit_button("💾 સુધારા સેવ કરો"):
                                                 with st.spinner("સુધારા સેવ થઈ રહ્યા છે..."):
-                                                    for col_name, ans in edit_answers.items():
-                                                        q = next((item for item in questions_list if item["name"] == col_name), None)
-                                                        if q and q['type'] == "9" and str(type(ans)) != "<class 'str'>":
-                                                            try:
-                                                                file_ext = ans.name.split('.')[-1]
-                                                                unique_name = f"{int(datetime.datetime.now().timestamp())}_edit.{file_ext}"
-                                                                file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
-                                                                media = MediaIoBaseUpload(io.BytesIO(ans.getvalue()), mimetype=ans.type, resumable=True)
-                                                                file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-                                                                
-                                                                img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
-                                                                edit_answers[col_name] = f'=IMAGE("{img_url}")'
-                                                            except: edit_answers[col_name] = ans.name
-                                                    
                                                     update_data = [edit_answers.get(c, "") for c in all_records[0]]
                                                     sheet.values_update(f"{data_sheet_name}!A{selected_idx + 2}:Z{selected_idx + 2}", params={'valueInputOption': 'USER_ENTERED'}, body={'values': [update_data]})
                                                     st.success("✅ ડેટા સફળતાપૂર્વક સુધરી ગયો છે!")
@@ -450,7 +409,7 @@ else:
                         supabase.table("school_users").update({"password": new_password}).eq("username", st.session_state.username).execute()
                         st.success("✅ તમારો નવો પાસવર્ડ સફળતાપૂર્વક સેવ થઈ ગયો છે!")
                     except Exception as e:
-                        st.error(f"⚠️ એરર: {e}")
+                        st.error(f"⚠️ એરર:ເຊ : {e}")
                 else:
                     st.warning("કૃપા કરીને નવો પાસવર્ડ લખો.")
 

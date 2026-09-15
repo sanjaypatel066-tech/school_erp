@@ -390,7 +390,8 @@ else:
                 sel_ws_name = st.selectbox("📋 ડેટા ટેબ (Worksheet) પસંદ કરો:", ws_names, key="viewer_worksheet")
                 target_ws = sheet.worksheet(sel_ws_name)
                 
-                records = target_ws.get_all_values()
+                # અહી ફોર્મ્યુલા સાથે ડેટા મેળવવો જેથી =IMAGE(...) ની લિંક પકડાઈ જાય
+                records = target_ws.get_all_values(value_render_option='FORMULA')
                 if len(records) > 1:
                     headers = records[0]
                     df = pd.DataFrame(records[1:], columns=headers)
@@ -415,9 +416,6 @@ else:
                                     if "photo" not in h.lower() and "ફોટો" not in h.lower():
                                         st.markdown(f"**{h}:** {row[h]}")
                             with col_img:
-                                # ડીબગ કરવા માટે આખી રો નો ડેટા પ્રિન્ટ કરવો
-                                st.write("Row Data:", dict(row))
-                                
                                 photo_val = ""
                                 for h, val in row.items():
                                     val_str = str(val)

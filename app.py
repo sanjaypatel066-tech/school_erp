@@ -572,7 +572,40 @@ else:
             out_date = col_d2.text_input("તારીખ:", value=datetime.date.today().strftime("%d-%m-%Y"), key="lp_date")
             
             c_img = st.checkbox("🖼️ નીચે ફોટો/ચિત્ર ઉમેરો", value=False, key="lp_cimg")
+            uploaded_img_base64 = ""
+            if c_img:
+                img_file = st.file_uploader("ફોટો અપલોડ કરો:", type=["png", "jpg", "jpeg"], key="lp_img_upload")
+                if img_file:
+                    bytes_data = img_file.getvalue()
+                    uploaded_img_base64 = base64.b64encode(bytes_data).decode("utf-8")
+
             c_tbl = st.checkbox("📊 નીચે ડેટા ટેબલ ઉમેરો", value=False, key="lp_ctbl")
+            table_html_data = ""
+            if c_tbl:
+                t_rows = st.number_input("ટેબલની હરોળ (Rows) ની સંખ્યા:", min_value=1, max_value=10, value=3)
+                t_cols = st.number_input("ટેબલના કોલમ (Columns) ની સંખ્યા:", min_value=1, max_value=5, value=2)
+                
+                st.write("ટેબલની વિગતો ભરો:")
+                table_matrix = []
+                for r in range(t_rows):
+                    cols_input = st.columns(t_cols)
+                    row_vals = []
+                    for c in range(t_cols):
+                        val = cols_input[c].text_input(f"R{r+1}C{c+1}", value=f"માહિતી {r+1},{c+1}", key=f"t_{r}_{c}")
+                        row_vals.append(val)
+                    table_matrix.append(row_vals)
+                
+                # HTML Table જનરેટ કરવું
+                table_html_data = "<table style='width:100%; border-collapse: collapse; margin: 15px 0;' border='1'>"
+                for idx, row in enumerate(table_matrix):
+                    table_html_data += "<tr>"
+                    for cell in row:
+                        if idx == 0:
+                            table_html_data += f"<th style='padding: 8px; background-color: #f1f5f9; text-align: center;'>{cell}</th>"
+                        else:
+                            table_html_data += f"<td style='padding: 8px; text-align: center;'>{cell}</td>"
+                    table_html_data += "</tr>"
+                table_html_data += "</table>"
             
             user_extra_note = st.text_area("📝 ખાસ નોંધ / આભારવિધિ:", placeholder="અહીં વધારાનું લખાણ ઉમેરી શકો છો...", key="lp_note")
 
@@ -584,7 +617,7 @@ else:
                 <table style="width: 100%; border-bottom: 2px solid #0A3663; padding-bottom: 10px; margin-bottom: 15px;">
                     <tr>
                         <td style="width: 15%; text-align: left; vertical-align: middle;">
-                            <div style="font-size: 35px;">🔵</div>
+                            <img src="https://cdn-icons-png.flaticon.com/512/3135/3135715.png" style="width: 65px; height: 65px;" alt="Logo">
                         </td>
                         <td style="width: 70%; text-align: center; vertical-align: middle;">
                             <p style="margin: 0; font-size: 13px; font-weight: bold; color: #1e293b;">જિલ્લા શિક્ષણ સમિતિ, વડોદરા સંચાલિત</p>
@@ -594,7 +627,7 @@ else:
                             <p style="margin: 2px 0 0 0; font-size: 11px; color: #0000FF; text-decoration: underline;">Email : vdr.padra.navapura@gmail.com</p>
                         </td>
                         <td style="width: 15%; text-align: right; vertical-align: middle;">
-                            <div style="font-size: 25px;">📖</div>
+                            <img src="https://cdn-icons-png.flaticon.com/512/2991/2991148.png" style="width: 60px; height: 60px;" alt="Right Logo">
                         </td>
                     </tr>
                 </table>
@@ -611,13 +644,14 @@ else:
                 
                 {f'<h4 style="text-align: center; color: #1E3A8A; margin-bottom: 15px; font-size: 15px;">વિષય: {letter_subject}</h4>' if letter_subject else ''}
                 
-                <div style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; min-height: 200px; margin-bottom: 20px;">
+                <div style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; min-height: 150px; margin-bottom: 20px;">
                     {default_text if default_text else 'અહીં AI દ્વારા લખાયેલ અથવા તમારું લખાણ દેખાશે...'}
                     {f'<br><br>{user_extra_note}' if user_extra_note else ''}
                 </div>
                 
-                {f'<div style="text-align: center; margin: 15px 0; border: 1px dashed #cbd5e1; padding: 15px;"><p style="font-size:12px; color:#64748b; margin:0;">[ફોટો / ચિત્ર વિસ્તાર]</p></div>' if c_img else ''}
-                {f'<div style="border: 1px dashed #cbd5e1; padding: 10px; text-align: center; margin: 15px 0; font-size: 12px; color: #64748b;">[ડેટა કોષ્ટક / ટેબલ વિસ્તાર]</div>' if c_tbl else ''}
+                {f'<div style="text-align: center; margin: 15px 0;"><img src="data:image/jpeg;base64,{uploaded_img_base64}" style="max-width: 100%; max-height: 250px; border-radius: 6px;" /></div>' if c_img and uploaded_img_base64 else ('<div style="text-align: center; border: 1px dashed #cbd5e1; padding: 10px; color: #64748b; font-size: 12px;">[ફોટો અપલોડ કરેલ નથી]</div>' if c_img else '')}
+                
+                {table_html_data if c_tbl and table_html_data else ''}
                 
                 <table style="width: 100%; margin-top: 40px; padding-top: 15px; border-top: 1px dashed #cbd5e1;">
                     <tr>
@@ -635,7 +669,6 @@ else:
             
             st.markdown("<br>", unsafe_allow_html=True)
             
-            # એચટીએમએલ ફાઇલ તરીકે ડાઉનલોડ કરાવવાની સચોટ પદ્ધતિ (જેથી બ્રાઉઝરમાંથી સીધી PDF પ્રિન્ટ કરી શકાય)
             b64_html = base64.b64encode(letter_box_html.encode("utf-8")).decode("utf-8")
             download_filename = f"Letter_Pad_{datetime.date.today().strftime('%d-%m-%Y')}.html"
             

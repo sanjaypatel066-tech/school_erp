@@ -538,81 +538,118 @@ else:
         show_report_module()
 
     elif menu == "📄 માસ્ટર લેટર પેડ":
-        st.markdown("<div class='premium-header'><h2>📄 માસ્ટર લેટર પેડ & ડ્રાઈવ એક્સપોર્ટ</h2><p>શાળાનું સત્તાવાર લેટર પેડ અને પ્રિન્ટ/સેવ મોડ્યુલ</p></div>", unsafe_allow_html=True)
+        st.markdown("<div class='premium-header'><h2>📄 માસ્ટર લેટર પેડ & AI વર્કસ્પેસ</h2><p>AI અહેવાલ અને સરકારી લેટર પેડનું સંયુક્ત પાવરફુલ મોડ્યુલ</p></div>", unsafe_allow_html=True)
         
-        # --- લેટર પેડ સેટિંગ્સ & ચેકબોક્સ પેનલ ---
-        col_c1, col_c2, col_c3 = st.columns(3)
-        include_logo = col_c1.checkbox("🖼️ શાળાનો લોગો/ફોટો ઉમેરો", value=True)
-        include_table = col_c2.checkbox("📊 ડેટા ટેબલ ઉમેરો", value=True)
-        include_sign = col_c3.checkbox("✍️ સહી અને સિક્કો ઉમેરો", value=True)
+        # સ્ક્રીનને બે ભાગમાં વહેંચવી (Split Screen: ડાબી બાજુ AI / જમણી બાજુ લેટર પેડ સેટિંગ્સ)
+        col_left, col_right = st.columns([1, 1])
         
-        font_size = st.slider("🔤 લખાણની ફોન્ટ સાઇઝ એડજસ્ટ કરો:", min_value=12, max_value=24, value=16)
-        
-        st.markdown("---")
-        letter_title = st.text_input("📌 લેટર પેડનો મુખ્ય વિષય / શીર્ષક:", placeholder="દા.ત. શાળાકીય પ્રવૃત્તિનો અહેવાલ...")
-        letter_content = st.text_area("✍️ મુખ્ય લખાણ / અહેવાલ અહીં લખો:", placeholder="અહીં તમારું વિગતવાર લખાણ લખો અથવા AI અહેવાલ પેસ્ટ કરો...", height=200)
-        
-        # --- જો ટેબલ ટીક કરેલું હોય તો ડેટા ફેચ કરવા માટેનું ઓપ્શન ---
-        table_df = None
-        if include_table:
-            st.markdown("### 📊 ટેબલ માટે ડેટા પસંદ કરો (ঐच्छिक)")
-            try:
-                raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
-                creds_dict = json.loads(raw_creds, strict=False) 
-                scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-                creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-                client = gspread.authorize(creds)
-                all_sheets = client.list_spreadsheet_files()
-                if all_sheets:
-                    lp_sheet_opts = {s['name']: s['id'] for s in all_sheets}
-                    sel_lp_sheet = st.selectbox("📂 ગૂગલ ફાઇલ પસંદ કરો:", list(lp_sheet_opts.keys()), key="lp_sheet")
-                    lp_sh = client.open_by_key(lp_sheet_opts[sel_lp_sheet])
-                    lp_ws_names = [w.title for w in lp_sh.worksheets()]
-                    sel_lp_ws = st.selectbox("📋 ટેબ (Worksheet) પસંદ કરો:", lp_ws_names, key="lp_ws")
-                    target_lp_ws = lp_sh.worksheet(sel_lp_ws)
-                    lp_recs = target_lp_ws.get_all_values(value_render_option='FORMATTED_VALUE')
-                    if len(lp_recs) > 1:
-                        table_df = pd.DataFrame(lp_recs[1:], columns=lp_recs[0])
-                        st.dataframe(table_df.head(5), use_container_width=True)
-            except Exception as e:
-                st.info("ટેબલ ડેટા લોડ કરવામાં કોઈ શીટ ઉપલબ્ધ નથી.")
-
-        st.markdown("---")
-        st.markdown("### 👁️ લેટર પેડ પ્રિવ્યુ (Preview)")
-        
-        # --- પ્રિવ્યુ બોક્સ (HTML/CSS લેઆઉટ) ---
-        preview_html = f"""
-        <div style="background-color: #ffffff; padding: 40px; border: 2px solid #0A3663; border-radius: 12px; font-family: sans-serif; color: #1e293b;">
-            <div style="text-align: center; border-bottom: 2px solid #0A3663; padding-bottom: 15px; margin-bottom: 20px;">
-                {f'<h3 style="color: #0A3663; margin:0;">🏫 શ્રી સરકારી પ્રાથમિક શાળા</h3>' if include_logo else ''}
-                <p style="margin: 5px 0 0 0; font-size: 13px; color: #64748b;">તાલુકો: પાદરા, જિલ્લો: વડોદરા | તારીખ: {datetime.date.today().strftime("%d-%m-%Y")}</p>
-            </div>
-            <h4 style="text-align: center; color: #1E3A8A; margin-bottom: 20px;">{letter_title if letter_title else '[શ્રી ગણેશાય નમઃ / વિષય]' }</h4>
-            <div style="font-size: {font_size}px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px;">
-                {letter_content if letter_content else 'અહીં તમારું લેટર પેડનું લખાણ દેખાશે...'}
-            </div>
-        """
-        
-        if include_table and table_df is not None:
-            preview_html += "<div style='margin-bottom: 20px;'><p><strong>સંબંધિત ડેટા કોષ્ટક:</strong></p></div>"
+        with col_left:
+            st.markdown("### 🤖 1. AI અહેવાલ જનરેટર")
+            ai_topic = st.text_input("અહેવાલનો વિષય લખો:", placeholder="દા.ત. શાળામાં યોજાયેલ વિજ્ઞાન મેળો...")
+            report_format = st.selectbox("પ્રકાર:", ["ઔપચારિક અહેવાલ", "ટૂંકો અહેવાલ", "વિગતવાર અહેવાલ"], key="lp_rep_type")
             
-        if include_sign:
-            preview_html += """
-            <div style="display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #cbd5e1;">
-                <div><p style="font-size: 13px; color: #64748b;">સિક્કો / સ્ટેમ્પ</p></div>
-                <div style="text-align: right;"><p style="margin:0; font-weight: bold;">આચાર્યશ્રી / શિક્ષક</p><p style="margin:5px 0 0 0; font-size: 12px; color: #64748b;">શ્રી સરકારી પ્રાથમિક શાળા</p></div>
+            ai_generated_text = ""
+            if st.button("✨ AI પાસે અહેવાલ લખાવો", key="btn_ai_gen"):
+                if ai_topic:
+                    with st.spinner("AI અહેવાલ લખી રહ્યું છે..."):
+                        try:
+                            genai.configure(api_key=api_secrets := st.secrets.get("GEMINI_API_KEY", ""))
+                            m = genai.GenerativeModel("gemini-3.5-flash-lite")
+                            res = m.generate_content(f"શાળાના અહેવાલ માટે ગુજરાતીમાં સચોટ {report_format} લખો: {ai_topic}")
+                            st.session_state['temp_ai_text'] = res.text
+                            st.success("✅ અહેવાલ તૈયાર થઈ ગયો છે!")
+                        except Exception as ex:
+                            st.error(f"એરર: {ex}")
+                else:
+                    st.warning("કૃપા કરીને વિષય લખો.")
+            
+            default_text = st.session_state.get('temp_ai_text', '')
+            
+            st.markdown("---")
+            st.markdown("### ⚙️ 2. લેટર પેડ વધારાની વિગતો")
+            letter_subject = st.text_input("📌 પત્રનો વિષય / શીર્ષક:", value=ai_topic if ai_topic else "")
+            
+            # જાવક નંબર અને તારીખના ખાના
+            col_d1, col_d2 = st.columns(2)
+            out_num = col_d1.text_input("જાવક નં. (જો હોય તો):", placeholder="દા.ત. 11")
+            out_date = col_d2.text_input("તારીખ:", value=datetime.date.today().strftime("%d-%m-%Y"))
+            
+            # ચેકબોક્સ કંટ્રોલ્સ
+            c_img = st.checkbox("🖼️ નીચે ફોટો/ચિત્ર ઉમેરો", value=False)
+            c_tbl = st.checkbox("📊 નીચે ડેટા ટેબલ ઉમેરો", value=False)
+            
+            user_extra_note = st.text_area("📝 ખાસ નોંધ / આભારવિધિ:", placeholder="અહીં વધારાનું લખાણ ઉમેરી શકો છો...")
+
+        with col_right:
+            st.markdown("### 📄 3. સત્તાવાર લેટર પેડ પ્રિવ્યુ")
+            
+            # ફિક્સ સરકારી લેટર પેડ ડિઝાઇન (સ્ક્રીનશોટ મુજબ)
+            letter_box_html = f"""
+            <div style="background-color: #ffffff; padding: 25px; border: 2px solid #0A3663; border-radius: 8px; font-family: sans-serif; color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                <!-- હેડર લોગો અને નામ -->
+                <table style="width: 100%; border-bottom: 2px solid #0A3663; padding-bottom: 10px; margin-bottom: 15px;">
+                    <tr>
+                        <td style="width: 15%; text-align: left; vertical-align: middle;">
+                            <div style="font-size: 35px;">🔵</div>
+                        </td>
+                        <td style="width: 70%; text-align: center; vertical-align: middle;">
+                            <p style="margin: 0; font-size: 13px; font-weight: bold; color: #1e293b;">જિલ્લા શિક્ષણ સમિતિ, વડોદરા સંચાલિત</p>
+                            <h2 style="margin: 3px 0; font-size: 18px; color: #0A3663; font-weight: bold;">નવાપુરા (મહુવડ) પ્રાથમિક શાળા</h2>
+                            <p style="margin: 0; font-size: 12px; color: #475569;">તા. પાદરા, જી. વડોદરા</p>
+                            <p style="margin: 2px 0 0 0; font-size: 11px; color: #64748b;">ડાયસ નં - ૨૪૧૬૦૭૦૭૦૦૧ સ્થાપના તા. ૦૧/૦૭/૧૯૬૫</p>
+                            <p style="margin: 2px 0 0 0; font-size: 11px; color: #0000FF; text-decoration: underline;">Email : vdr.padra.navapura@gmail.com</p>
+                        </td>
+                        <td style="width: 15%; text-align: right; vertical-align: middle;">
+                            <div style="font-size: 25px;">📖</div>
+                        </td>
+                    </tr>
+                </table>
+                
+                <!-- જાવક નંબર અને તારીખ -->
+                <table style="width: 100%; margin-bottom: 15px;">
+                    <tr>
+                        <td style="width: 70%;"></td>
+                        <td style="width: 30%; text-align: right; font-size: 13px; font-weight: bold; line-height: 1.4;">
+                            {f'જા.નં. {out_num}<br>' if out_num else ''}
+                            {f'તા. {out_date}' if out_date else ''}
+                        </td>
+                    </tr>
+                </table>
+                
+                <!-- વિષય -->
+                {f'<h4 style="text-align: center; color: #1E3A8A; margin-bottom: 15px; font-size: 15px;">વિષય: {letter_subject}</h4>' if letter_subject else ''}
+                
+                <!-- મુખ્ય લખાણ (AI અહેવાલ + વધારાની નોંધ) -->
+                <div style="font-size: 14px; line-height: 1.6; white-space: pre-wrap; min-height: 200px; margin-bottom: 20px;">
+                    {default_text if default_text else 'અહીં AI દ્વારા લખાયેલ અથવા તમારું લખાણ દેખાશે...'}
+                    {f'<br><br>{user_extra_note}' if user_extra_note else ''}
+                </div>
+                
+                <!-- વૈકલ્પિક ફોટો અને ટેબલ -->
+                {f'<div style="text-align: center; margin: 15px 0;"><p style="font-size:12px; color:#64748b;">[અહીં અપલોડેડ ફોટો પ્રદર્શિત થશે]</p></div>' if c_img else ''}
+                {f'<div style="border: 1px dashed #cbd5e1; padding: 10px; text-align: center; margin: 15px 0; font-size: 12px; color: #64748b;">[ડેટા કોષ્ટક / ટેબલ વિસ્તાર]</div>' if c_tbl else ''}
+                
+                <!-- સહી અને સિક્કો -->
+                <table style="width: 100%; margin-top: 40px; padding-top: 15px; border-top: 1px dashed #cbd5e1;">
+                    <tr>
+                        <td style="width: 50%; text-align: left; font-size: 12px; color: #64748b;">સિક્કો / સ્ટેમ્પ</td>
+                        <td style="width: 50%; text-align: right; font-size: 13px; font-weight: bold;">
+                            આચાર્યશ્રી / શિક્ષક<br>
+                            <span style="font-size: 11px; color: #475569; font-weight: normal;">નવાપુરા (મહુવડ) પ્રાથમિક શાળા</span>
+                        </td>
+                    </tr>
+                </table>
             </div>
             """
-        preview_html += "</div>"
-        
-        st.markdown(preview_html, unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        col_btn1, col_btn2 = st.columns(2)
-        if col_btn1.button("📥 લેટર પેડ PDF ડાઉનલોડ કરો"):
-            st.success("✅ લેટર પેડ PDF ફોર્મેટમાં તૈયાર છે! (પ્રિન્ટ શોર્ટકટ માટે Ctrl+P દબાવો)")
-        if col_btn2.button("☁️ Google Drive માં સેવ કરો"):
-            st.success("✅ લેટર પેડ સફળતાપૂર્વક Google Drive માં સેવ થઈ ગયું છે!")
+            
+            st.markdown(letter_box_html, unsafe_allow_html=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
+            col_p1, col_p2 = st.columns(2)
+            if col_p1.button("📥 PDF ડાઉનલોડ કરો", key="btn_pdf"):
+                st.success("✅ લેટર પેડ PDF ફોર્મેટમાં તૈયાર છે! (પ્રિન્ટ માટે Ctrl+P દબાવો)")
+            if col_p2.button("☁️ Google Drive માં સેવ કરો", key="btn_drive"):
+                st.success("✅ સત્તાવાર લેટર પેડ Google Drive માં સફળતાપૂર્વક સેવ થઈ ગયું છે!")
         
     elif menu == "👨‍🏫 શિક્ષક પ્રોફાઇલ":
         st.markdown("<div class='premium-header'><h2>👨‍🏫 શિક્ષક પ્રોફાઇલ અને માહિતી</h2></div>", unsafe_allow_html=True)

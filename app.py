@@ -64,7 +64,7 @@ else:
     st.sidebar.markdown(f"**હોદ્દો:** {st.session_state.role}")
     
     menu = st.sidebar.radio("મેનુ પસંદ કરો", [
-        "🏠 ડેશબોર્ડ", "✨ સ્માર્ટ એન્ટ્રી", "👨‍🏫 શિક્ષક પ્રોફાઇલ", 
+        "🏠 ડેશબોર્ડ", "✨ સ્માર્ટ એન્ટ્રી", "🔍 ફોટો અને રેકોર્ડ વ્યૂઅર", "👨‍🏫 શિક્ષક પ્રોફાઇલ", 
         "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
@@ -367,6 +367,79 @@ else:
                     except gspread.exceptions.WorksheetNotFound: st.error("⚠️ Setup પાનું મળતું નથી.")
                 else: st.info("⚠️ કોઈ ગૂગલ શીટ જોડાયેલી નથી.")
             except Exception as e: st.error(f"એરર: {e}")
+
+    elif menu == "🔍 ફોટો અને રેકોર્ડ વ્યૂઅર":
+        st.markdown("<div class='premium-header'><h2>🔍 સ્માર્ટ ફોટો અને રેકોર્ડ વ્યૂઅર</h2><p>ગૂગલ શીટમાંથી ડેટા અને ફોટો શોધો</p></div>", unsafe_allow_html=True)
+        try:
+            raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
+            creds_dict = json.loads(raw_creds, strict=False) 
+            scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+            creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+            client = gspread.authorize(creds)
+            all_sheets = client.list_spreadsheet_files()
+            
+            if all_sheets:
+                sheet_options = {s['name']: s['id'] for s in all_sheets}
+                sel_sheet_name = st.selectbox("📂 ફોર્મ પસંદ કરો:", list(sheet_options.keys()), key="viewer_sheet")
+                sel_sheet_id = sheet_options[sel_sheet_name]
+                sheet = client.open_by_key(sel_sheet_id)
+                
+                # ડેટા શીટ શોધવી (પ્રથમ 'Entry' અથવા 'Data ...')
+                target_ws = None
+                for ws in sheet.worksheets():
+                    if "Entry" in ws.title or "Data" in ws.title:
+                        target_ws = ws
+                        break
+                
+                if target_ws:
+                    records = target_ws.get_all_values()
+                    if len(records) > 1:
+                        headers = records[0]
+                        df = pd.DataFrame(records[1:], columns=headers)
+                        
+                        st.markdown("---")
+                        col_search_1, col_search_2 = st.columns(2)
+                        search_col = col_search_1.selectbox("સર્ચ કરવા માટે કોલમ પસંદ કરો:", headers)
+                        search_val = col_search_2.text_input("શોધવા માટે નામ અથવા શબ્દ લખો:")
+                        
+                        if search_val:
+                            filtered_df = df[df[search_col].astype(str).str.contains(search_val, case=False, na=False)]
+                        else:
+                            filtered_df = df
+                            
+                        st.write(f"કુલ મળેલા પરિણામો: {len(filtered_df)}")
+                        
+                        for idx, row in filtered_df.iterrows():
+                            with st.expander(f"📁 રેકોર્ડ #{idx+1} - {row.get(headers[0], 'વિગત')}"):
+                                col_info, col_img = st.columns([2, 1])
+                                with col_info:
+                                    for h in headers:
+                                        if "photo" not in h.lower() and "ફોટો" not in h.lower():
+                                            st.markdown(f"**{h}:** {row[h]}")
+                                with col_img:
+                                    # ફોટો લિંક શોધવી
+                                    photo_val = ""
+                                    for h in headers:
+                                        if "photo" in h.lower() or "ફોટો" in h.lower():
+                                            photo_val = str(row[h])
+                                            break
+                                    if photo_val and "http" in photo_val:
+                                        # =IMAGE("url") માંથી યુઆરએલ એક્સટ્રેક્ટ કરવી
+                                        if '"' in photo_val:
+                                            parts = photo_val.split('"')
+                                            if len(parts) > 1:
+                                                img_url = parts[1]
+                                                st.image(img_url, caption="અપલોડેડ ફોટો", width=250)
+                                        else:
+                                            st.image(photo_val, caption="અપલોડેડ ફોટો", width=250)
+                                    else:
+                                        st.info("આ એન્ટ્રીમાં કોઈ ફોટો ઉપલબ્ધ નથી.")
+                    else:
+                        st.info("શીટમાં હજુ કોઈ ડેટા નથી.")
+                else:
+                    st.warning("એન્ટ્રી કે ડેટા શીટ મળી નથી.")
+        except Exception as e:
+            st.error(f"એરર: {e}")
 
     elif menu == "📝 અહેવાલ મોડ્યુલ":
         st.markdown("<div class='premium-header'><h2>📝 અહેવાલ મોડ્યુલ</h2></div>", unsafe_allow_html=True)

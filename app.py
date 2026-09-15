@@ -66,7 +66,7 @@ else:
         "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
-    if st.sidebar.button("લોગ આઉਟ", use_container_width=True):
+    if st.sidebar.button("લોગ આઉટ", use_container_width=True):
         st.session_state.form_unlocked = False
         logout()
 
@@ -350,20 +350,24 @@ else:
                                                         edit_answers[col_name] = old_val
                                                     elif q['type'] == "9": 
                                                         if old_val:
-                                                            st.markdown(f"**{col_name}**: (પહેલેથી સેવ છે)")
+                                                            st.markdown(f"**{col_name}**: (પહેલેથી ફોટો સેવ છે)")
                                                         else:
                                                             st.markdown(f"**{col_name}**: (કોઈ ફોટો નથી)")
-                                                        f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_file_{col_name}")
+                                                            
+                                                        f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો (જો બદલવો હોય તો જ)", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_file_{col_name}")
+                                                        
                                                         if f_up:
+                                                            # જો નવો ફોટો અપલોડ કર્યો હોય તો જ નવી લિંક બનાવવી
                                                             try:
                                                                 file_bytes = f_up.getvalue()
                                                                 encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
                                                                 payload = {"filename": f_up.name, "mimeType": f_up.type, "bytes": encoded_bytes}
                                                                 res = requests.post(apps_script_url, json=payload).json()
-                                                                edit_answers[col_name] = f'=IMAGE("{res["url"]}")' if "url" in res else f_up.name
+                                                                edit_answers[col_name] = f'=IMAGE("{res["url"]}")' if "url" in res else old_val
                                                             except:
-                                                                edit_answers[col_name] = f_up.name
+                                                                edit_answers[col_name] = old_val
                                                         else:
+                                                            # જો નવો ફોટો ન નાખ્યો હોય, તો જૂનો ફોટો (old_val) યથાવત રાખવો!
                                                             edit_answers[col_name] = old_val
                                                     else: edit_answers[col_name] = st.text_input(col_name, value=old_val, key=f"edit_txt_{col_name}")
                                                 else:

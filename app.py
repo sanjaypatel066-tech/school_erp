@@ -10,6 +10,7 @@ import requests
 import gspread
 from google.oauth2.service_account import Credentials
 import pandas as pd
+import google.generativeai as genai
 
 # 1. Page Config & Clean Modern UI/UX
 st.set_page_config(page_title="School ERP Pro", layout="wide", initial_sidebar_state="expanded")
@@ -71,7 +72,7 @@ else:
         "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
-    if st.sidebar.button("લોગ આઉਟ", use_container_width=True):
+    if st.sidebar.button("લોગ આઉટ", use_container_width=True):
         st.session_state.form_unlocked = False
         st.session_state.edit_unlocked = False
         st.session_state.setup_edit_verified = False
@@ -201,7 +202,6 @@ else:
                             tab_new, tab_edit = st.tabs(["📝 નવી એન્ટ્રી કરો", "✏️ જૂનો ડેટા સુધારો"])
                             
                             with tab_new:
-                                # શરત ૧: નવી એન્ટ્રી માટે પાસવર્ડ ચેક
                                 if setup_password and not st.session_state.form_unlocked:
                                     st.warning("🔒 આ ફોર્મ સુરક્ષિત છે. નવી એન્ટ્રી કરવા માટે પાસવર્ડ દાખલ કરો:")
                                     entered_pwd = st.text_input("નવી એન્ટ્રી પાસવર્ડ નાખો:", type="password", key="new_entry_pwd")
@@ -336,10 +336,8 @@ else:
                                 
                                 sel_edit_ws_name = st.selectbox("📋 સુધારવા માટે ડેટા ટેબ પસંદ કરો:", all_ws_names, key="edit_ws_select")
                                 
-                                # શરત ૨ અને ૩: પાસવર્ડ વેરિફિકેશન લોજીક
                                 if setup_password:
                                     if sel_edit_ws_name.lower() == "setup":
-                                        # શરત ૩: ખુદ Setup શીટ એડિટ કરવા માટે દર વખતે પાસવર્ડ માંગવો
                                         st.warning("🔒 Setup શીટ એડિટ કરવા માટે પાસવર્ડ આવશ્યક છે:")
                                         setup_edit_pwd = st.text_input("Setup એડિટ પાસવર્ડ નાખો:", type="password", key="setup_pwd_input")
                                         if st.button("🔓 Setup અનલોક કરો", key="btn_unlock_setup"):
@@ -354,7 +352,6 @@ else:
                                         if not st.session_state.get('setup_edit_verified', False):
                                             st.stop()
                                     else:
-                                        # શરત ૨: Setup સિવાયની નોર્મલ શીટ માટે સેશનમાં એકવાર પાસવર્ડ
                                         if not st.session_state.edit_unlocked:
                                             st.warning("🔒 ડેટા એડિટ કરવા માટે પાસવર્ડ દાખલ કરો:")
                                             entered_edit_pwd = st.text_input("એડિટ પાસવર્ડ નાખો:", type="password", key="normal_edit_pwd")
@@ -586,7 +583,30 @@ else:
 
     elif menu == "🤖 AI અહેવાલ":
         st.markdown("<div class='premium-header'><h2>🤖 સ્માર્ટ AI અહેવાલ લેખક</h2></div>", unsafe_allow_html=True)
-        st.info("AI મોડ્યુલ અહીં આવશે.")
+        
+        # --- સ્માર્ટ AI અહેવાલ લેખક મોડ્યુલ ---
+        try:
+            api_key = st.secrets.get("GEMINI_API_KEY", "")
+            if api_key:
+                genai.configure(api_key=api_key)
+                ai_model = genai.GenerativeModel("gemini-1.5-flash")
+                
+                prompt_topic = st.text_input("અહેવાલનો વિષય અથવા મુખ્ય મુદ્દાઓ લખੋ:", placeholder="દા.ત. શાળામાં યોજાયેલ વિજ્ઞાન મેળો અને પ્રદર્શન...")
+                report_type = st.selectbox("અહેવાલનો પ્રકાર પસંદ કરો:", ["ઔપચારિક અહેવાલ", "ટૂંકો અહેવાલ (સોશિયલ મીડિયા માટે)", "વિગતવાર અહેવાલ", "પ્રેસ નોટ"])
+                
+                if st.button("✨ AI પાસે અહેવાલ લખાવો"):
+                    if prompt_topic:
+                        with st.spinner("AI અહેવાલ તૈયાર કરી રહ્યું છે..."):
+                            full_prompt = f"તમે એક નિષ્ણાત શાળા શિક્ષક અને લેખક છો. નીચેના વિષય પર ગુજરાતી ભાષામાં એક ઉત્તમ, સચોટ અને આકર્ષક {report_type} લખો:\n\nવિષય: {prompt_topic}"
+                            response = ai_model.generate_content(full_prompt)
+                            st.markdown("### 📄 તૈયાર થયેલ અહેવાલ:")
+                            st.write(response.text)
+                    else:
+                        st.warning("કૃપા કરીને અહેવાલનો વિષય લખો.")
+            else:
+                st.info("🤖 AI મોડ્યુલ સક્રિય કરવા માટે Streamlit Secrets માં `GEMINI_API_KEY` ઉમેરો.")
+        except Exception as e:
+            st.warning(f"AI મોડ્યુલ લોડ કરવામાં એરર: {e}")
 
     elif menu == "⚙️ સેટિંગ્સ":
         st.markdown("<div class='premium-header'><h2>⚙️ સેટિંગ્સ અને યુઝર મેનેજમેન્ટ</h2></div>", unsafe_allow_html=True)

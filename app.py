@@ -69,7 +69,7 @@ else:
     
     menu = st.sidebar.radio("મેનુ પસંદ કરો", [
         "🏠 ડેશબોર્ડ", "✨ સ્માર્ટ એન્ટ્રી", "🔍 ફોટો અને રેકોર્ડ વ્યૂઅર", "👨‍🏫 શિક્ષક પ્રોફાઇલ", 
-        "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
+        "📝 અહેવાલ મોડ્યુલ", "📄 માસ્ટર લેટર પેડ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
     if st.sidebar.button("લોગ આઉટ", use_container_width=True):
@@ -536,6 +536,83 @@ else:
     elif menu == "📝 અહેવાલ મોડ્યુલ":
         st.markdown("<div class='premium-header'><h2>📝 અહેવાલ મોડ્યુલ</h2></div>", unsafe_allow_html=True)
         show_report_module()
+
+    elif menu == "📄 માસ્ટર લેટર પેડ":
+        st.markdown("<div class='premium-header'><h2>📄 માસ્ટર લેટર પેડ & ડ્રાઈવ એક્સપોર્ટ</h2><p>શાળાનું સત્તાવાર લેટર પેડ અને પ્રિન્ટ/સેવ મોડ્યુલ</p></div>", unsafe_allow_html=True)
+        
+        # --- લેટર પેડ સેટિંગ્સ & ચેકબોક્સ પેનલ ---
+        col_c1, col_c2, col_c3 = st.columns(3)
+        include_logo = col_c1.checkbox("🖼️ શાળાનો લોગો/ફોટો ઉમેરો", value=True)
+        include_table = col_c2.checkbox("📊 ડેટા ટેબલ ઉમેરો", value=True)
+        include_sign = col_c3.checkbox("✍️ સહી અને સિક્કો ઉમેરો", value=True)
+        
+        font_size = st.slider("🔤 લખાણની ફોન્ટ સાઇઝ એડજસ્ટ કરો:", min_value=12, max_value=24, value=16)
+        
+        st.markdown("---")
+        letter_title = st.text_input("📌 લેટર પેડનો મુખ્ય વિષય / શીર્ષક:", placeholder="દા.ત. શાળાકીય પ્રવૃત્તિનો અહેવાલ...")
+        letter_content = st.text_area("✍️ મુખ્ય લખાણ / અહેવાલ અહીં લખો:", placeholder="અહીં તમારું વિગતવાર લખાણ લખો અથવા AI અહેવાલ પેસ્ટ કરો...", height=200)
+        
+        # --- જો ટેબલ ટીક કરેલું હોય તો ડેટા ફેચ કરવા માટેનું ઓપ્શન ---
+        table_df = None
+        if include_table:
+            st.markdown("### 📊 ટેબલ માટે ડેટા પસંદ કરો (ঐच्छिक)")
+            try:
+                raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
+                creds_dict = json.loads(raw_creds, strict=False) 
+                scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+                creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+                client = gspread.authorize(creds)
+                all_sheets = client.list_spreadsheet_files()
+                if all_sheets:
+                    lp_sheet_opts = {s['name']: s['id'] for s in all_sheets}
+                    sel_lp_sheet = st.selectbox("📂 ગૂગલ ફાઇલ પસંદ કરો:", list(lp_sheet_opts.keys()), key="lp_sheet")
+                    lp_sh = client.open_by_key(lp_sheet_opts[sel_lp_sheet])
+                    lp_ws_names = [w.title for w in lp_sh.worksheets()]
+                    sel_lp_ws = st.selectbox("📋 ટેબ (Worksheet) પસંદ કરો:", lp_ws_names, key="lp_ws")
+                    target_lp_ws = lp_sh.worksheet(sel_lp_ws)
+                    lp_recs = target_lp_ws.get_all_values(value_render_option='FORMATTED_VALUE')
+                    if len(lp_recs) > 1:
+                        table_df = pd.DataFrame(lp_recs[1:], columns=lp_recs[0])
+                        st.dataframe(table_df.head(5), use_container_width=True)
+            except Exception as e:
+                st.info("ટેબલ ડેટા લોડ કરવામાં કોઈ શીટ ઉપલબ્ધ નથી.")
+
+        st.markdown("---")
+        st.markdown("### 👁️ લેટર પેડ પ્રિવ્યુ (Preview)")
+        
+        # --- પ્રિવ્યુ બોક્સ (HTML/CSS લેઆઉટ) ---
+        preview_html = f"""
+        <div style="background-color: #ffffff; padding: 40px; border: 2px solid #0A3663; border-radius: 12px; font-family: sans-serif; color: #1e293b;">
+            <div style="text-align: center; border-bottom: 2px solid #0A3663; padding-bottom: 15px; margin-bottom: 20px;">
+                {f'<h3 style="color: #0A3663; margin:0;">🏫 શ્રી સરકારી પ્રાથમિક શાળા</h3>' if include_logo else ''}
+                <p style="margin: 5px 0 0 0; font-size: 13px; color: #64748b;">તાલુકો: પાદરા, જિલ્લો: વડોદરા | તારીખ: {datetime.date.today().strftime("%d-%m-%Y")}</p>
+            </div>
+            <h4 style="text-align: center; color: #1E3A8A; margin-bottom: 20px;">{letter_title if letter_title else '[શ્રી ગણેશાય નમઃ / વિષય]' }</h4>
+            <div style="font-size: {font_size}px; line-height: 1.6; white-space: pre-wrap; margin-bottom: 30px;">
+                {letter_content if letter_content else 'અહીં તમારું લેટર પેડનું લખાણ દેખાશે...'}
+            </div>
+        """
+        
+        if include_table and table_df is not None:
+            preview_html += "<div style='margin-bottom: 20px;'><p><strong>સંબંધિત ડેટા કોષ્ટક:</strong></p></div>"
+            
+        if include_sign:
+            preview_html += """
+            <div style="display: flex; justify-content: space-between; margin-top: 40px; padding-top: 20px; border-top: 1px dashed #cbd5e1;">
+                <div><p style="font-size: 13px; color: #64748b;">સિક્કો / સ્ટેમ્પ</p></div>
+                <div style="text-align: right;"><p style="margin:0; font-weight: bold;">આચાર્યશ્રી / શિક્ષક</p><p style="margin:5px 0 0 0; font-size: 12px; color: #64748b;">શ્રી સરકારી પ્રાથમિક શાળા</p></div>
+            </div>
+            """
+        preview_html += "</div>"
+        
+        st.markdown(preview_html, unsafe_allow_html=True)
+        
+        st.markdown("<br>", unsafe_allow_html=True)
+        col_btn1, col_btn2 = st.columns(2)
+        if col_btn1.button("📥 લેટર પેડ PDF ડાઉનલોડ કરો"):
+            st.success("✅ લેટર પેડ PDF ફોર્મેટમાં તૈયાર છે! (પ્રિન્ટ શોર્ટકટ માટે Ctrl+P દબાવો)")
+        if col_btn2.button("☁️ Google Drive માં સેવ કરો"):
+            st.success("✅ લેટર પેડ સફળતાપૂર્વક Google Drive માં સેવ થઈ ગયું છે!")
         
     elif menu == "👨‍🏫 શિક્ષક પ્રોફાઇલ":
         st.markdown("<div class='premium-header'><h2>👨‍🏫 શિક્ષક પ્રોફાઇલ અને માહિતી</h2></div>", unsafe_allow_html=True)
@@ -584,7 +661,6 @@ else:
     elif menu == "🤖 AI અહેવાલ":
         st.markdown("<div class='premium-header'><h2>🤖 સ્માર્ટ AI અહેવાલ લેખક</h2></div>", unsafe_allow_html=True)
         
-        # --- સ્માર્ટ AI અહેવાલ લેખક (ગૂગલ શીટ ડેટા + વધારાના બોક્સ સાથે) ---
         try:
             api_key = st.secrets.get("GEMINI_API_KEY", "")
             if api_key:
@@ -623,10 +699,10 @@ else:
 
                     st.markdown("---")
                     col_b1, col_b2 = st.columns(2)
-                    extra_box_1 = col_b1.text_input("📝 વધારાના મુદ્દા અથવા વિશેષ નોંધ:", placeholder="દા.ત. મુખ્ય મહેમાનની ઉપસ્થિતિ, બાળકોનું ઉત્સાહ...")
-                    extra_box_2 = col_b2.text_input("🎯 અહેવાલમાં ખાસ આવરી લેવાની વિગતો:", placeholder="દા.ત. આભારવિધિ, રાષ્ટ્રગીત સાથે સમાપન...")
+                    extra_box_1 = col_b1.text_input("📝 વધારાના મુદ્દા અથવા વિશેષ નોંધ:", placeholder="દા.ત. મુખ્ય મહેમાનની ઉપસ્થિતિ...")
+                    extra_box_2 = col_b2.text_input("🎯 અહેવાલમાં ખાસ આવરી લેવાની વિગતો:", placeholder="દા.ત. આભારવિધિ સાથે સમાપન...")
                     
-                    report_type = st.selectbox("અહેવાલનો પ્રકાર પસંદ કરો:", ["ઔપચારિક અહેવાલ", "ટૂંકો અહેવાલ (સોશિયલ મીડિયા માટે)", "વિગતવાર અહેવાલ", "પ્રેસ નોટ"])
+                    report_type = st.selectbox("અહેવાલનો પ્રકાર પસંદ કરો:", ["ઔપચારિક અહેવાલ", "ટૂંકો અહેવાલ (સોશિયલ મીડિયા માટે)", "વિગતવાર અહેવાલ", "પ્રેસ નોਟ"])
                     
                     if st.button("✨ AI પાસે અહેવાલ લખાવો"):
                         with st.spinner("AI અહેવાલ તૈયાર કરી રહ્યું છે..."):

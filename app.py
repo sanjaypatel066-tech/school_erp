@@ -382,7 +382,7 @@ else:
                                                             try:
                                                                 file_bytes = f_up.getvalue()
                                                                 encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
-                                                                payload = {"filename": f_up.name, "mimeType": f_up.type, "bytes": encoded_bytes}
+                                                                payload = {"filename": file_bytes.name if hasattr(file_bytes, 'name') else "photo.jpg", "mimeType": f_up.type, "bytes": encoded_bytes}
                                                                 res = requests.post(apps_script_url, json=payload).json()
                                                                 edit_answers[col_name] = f'=IMAGE("{res["url"]}")' if "url" in res else old_val_formula
                                                             except:
@@ -398,7 +398,8 @@ else:
                                             if st.form_submit_button("💾 સુધારા સેવ કરો"):
                                                 with st.spinner("સુધારા સેવ થઈ રહ્યા છે..."):
                                                     update_data = [edit_answers.get(c, "") for c in records_display[0]]
-                                                    edit_ws.values_update(f"A{target_row_idx + 1}:Z{target_row_idx + 1}", params={'valueInputOption': 'USER_ENTERED'}, body={'values': [update_data]})
+                                                    # gspread નું સાચું અપડેટ ફંક્શન
+                                                    edit_ws.update(f"A{target_row_idx + 1}:Z{target_row_idx + 1}", [update_data], value_input_option='USER_ENTERED')
                                                     st.success("✅ ડેટા સફળતાપૂર્વક સુધરી ગયો છે!")
                                     else: 
                                         st.info(f"'{sel_ws_name}' ટેબમાં હજુ કોઈ ડેટા નથી.")

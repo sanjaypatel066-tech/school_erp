@@ -71,7 +71,7 @@ else:
         "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
-    if st.sidebar.button("લોગ આઉટ", use_container_width=True):
+    if st.sidebar.button("લોગ આઉਟ", use_container_width=True):
         st.session_state.form_unlocked = False
         st.session_state.edit_unlocked = False
         st.session_state.setup_edit_verified = False
@@ -437,7 +437,6 @@ else:
                                                     update_data = [edit_answers.get(c, "") for c in records_display[0]]
                                                     edit_ws.update(f"A{target_row_idx + 1}:Z{target_row_idx + 1}", [update_data], value_input_option='USER_ENTERED')
                                                     
-                                                    # જો Setup શીટ સફળતાપૂર્વક એડિટ થઈ હોય તો વેરિફિકેશન રીસેટ કરી દેવું જેથી ફરી પાસવર્ડ માંગે
                                                     if sel_edit_ws_name.lower() == "setup":
                                                         st.session_state.setup_edit_verified = False
                                                         

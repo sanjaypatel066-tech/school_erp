@@ -54,6 +54,10 @@ if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'form_unlocked' not in st.session_state:
     st.session_state.form_unlocked = False
+if 'edit_unlocked' not in st.session_state:
+    st.session_state.edit_unlocked = False
+if 'setup_edit_verified' not in st.session_state:
+    st.session_state.setup_edit_verified = False
 
 if not st.session_state.logged_in:
     login_form()
@@ -67,8 +71,10 @@ else:
         "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
-    if st.sidebar.button("લોગ આઉਟ", use_container_width=True):
+    if st.sidebar.button("લોગ આઉટ", use_container_width=True):
         st.session_state.form_unlocked = False
+        st.session_state.edit_unlocked = False
+        st.session_state.setup_edit_verified = False
         logout()
 
     if menu == "🏠 ડેશબોર્ડ":
@@ -142,19 +148,6 @@ else:
                                     if cell_idx + 1 < len(row) and str(row[cell_idx + 1]).strip() not in ["", "-"]:
                                         apps_script_url = str(row[cell_idx + 1]).strip()
 
-                        # --- વન-ટાઇમ સેશન પાસવર્ડ ચેક ---
-                        if setup_password and not st.session_state.form_unlocked:
-                            st.warning("🔒 આ ફોર્મ સુરક્ષિત છે. એન્ટ્રી કરવા માટે પાસવર્ડ દાખલ કરો:")
-                            entered_pwd = st.text_input("ફોર્મ પાસવર્ડ નાખો:", type="password")
-                            if st.button("🔓 અનલોક કરો"):
-                                if entered_pwd == setup_password:
-                                    st.session_state.form_unlocked = True
-                                    st.success("✅ પાસવર્ડ સાચો છે! હવે ફોર્મ ખુલી ગયું છે.")
-                                    st.rerun()
-                                else:
-                                    st.error("❌ ખોટો પાસવર્ડ!")
-                            st.stop()
-
                         def get_mapped_val(key, col_idx, default=""):
                             if key not in row_map: return default
                             row_idx = row_map[key]
@@ -208,6 +201,19 @@ else:
                             tab_new, tab_edit = st.tabs(["📝 નવી એન્ટ્રી કરો", "✏️ જૂનો ડેટા સુધારો"])
                             
                             with tab_new:
+                                # શરત ૧: નવી એન્ટ્રી માટે પાસવર્ડ ચેક
+                                if setup_password and not st.session_state.form_unlocked:
+                                    st.warning("🔒 આ ફોર્મ સુરક્ષિત છે. નવી એન્ટ્રી કરવા માટે પાસવર્ડ દાખલ કરો:")
+                                    entered_pwd = st.text_input("નવી એન્ટ્રી પાસવર્ડ નાખો:", type="password", key="new_entry_pwd")
+                                    if st.button("🔓 અનલોક કરો", key="btn_unlock_new"):
+                                        if entered_pwd == setup_password:
+                                            st.session_state.form_unlocked = True
+                                            st.success("✅ પાસવર્ડ સાચો છે! હવે ફોર્મ ખુલી ગયું છે.")
+                                            st.rerun()
+                                        else:
+                                            st.error("❌ ખોટો પાસવર્ડ!")
+                                    st.stop()
+
                                 unique_tabs = list(dict.fromkeys([q['tab'] for q in questions_list]))
                                 
                                 if 'form_state_cache' not in st.session_state:
@@ -325,13 +331,44 @@ else:
                                                     st.success(f"✅ ડેટા સફળતાપૂર્વક '{data_sheet_name}' માં સેવ થઈ ગયો છે!")
 
                             with tab_edit:
+                                all_ws = sheet.worksheets()
+                                all_ws_names = [w.title for w in all_ws]
+                                
+                                sel_edit_ws_name = st.selectbox("📋 સુધારવા માટે ડેટા ટેબ પસંદ કરો:", all_ws_names, key="edit_ws_select")
+                                
+                                # શરત ૨ અને ૩: પાસવર્ડ વેરિફિકેશન લોજીક
+                                if setup_password:
+                                    if sel_edit_ws_name.lower() == "setup":
+                                        # શરત ૩: ખુદ Setup શીટ એડિટ કરવા માટે દર વખતે પાસવર્ડ માંગવો
+                                        st.warning("🔒 Setup શીટ એડિટ કરવા માટે પાસવર્ડ આવશ્યક છે:")
+                                        setup_edit_pwd = st.text_input("Setup એડિટ પાસવર્ડ નાખો:", type="password", key="setup_pwd_input")
+                                        if st.button("🔓 Setup અનલોક કરો", key="btn_unlock_setup"):
+                                            if setup_edit_pwd == setup_password:
+                                                st.session_state.setup_edit_verified = True
+                                                st.success("✅ પાસવર્ડ સાચો છે!")
+                                                st.rerun()
+                                            else:
+                                                st.error("❌ ખોટો પાસવર્ડ!")
+                                                st.stop()
+                                        
+                                        if not st.session_state.get('setup_edit_verified', False):
+                                            st.stop()
+                                    else:
+                                        # શરત ૨: Setup સિવાયની નોર્મલ શીટ માટે સેશનમાં એકવાર પાસવર્ડ
+                                        if not st.session_state.edit_unlocked:
+                                            st.warning("🔒 ડેટા એડિટ કરવા માટે પાસવર્ડ દાખલ કરો:")
+                                            entered_edit_pwd = st.text_input("એડિટ પાસવર્ડ નાખો:", type="password", key="normal_edit_pwd")
+                                            if st.button("🔓 એડિટ અનલોક કરો", key="btn_unlock_normal"):
+                                                if entered_edit_pwd == setup_password:
+                                                    st.session_state.edit_unlocked = True
+                                                    st.success("✅ પાસવર્ડ સાચો છે!")
+                                                    st.rerun()
+                                                else:
+                                                    st.error("❌ ખોટો પાસવર્ડ!")
+                                            st.stop()
+
                                 try:
-                                    all_ws = sheet.worksheets()
-                                    all_ws_names = [w.title for w in all_ws]
-                                    
-                                    sel_edit_ws_name = st.selectbox("📋 સુધારવા માટે ડેટા ટેબ પસંદ કરો:", all_ws_names, key="edit_ws_select")
                                     edit_ws = sheet.worksheet(sel_edit_ws_name)
-                                    
                                     records_display = edit_ws.get_all_values(value_render_option='FORMATTED_VALUE')
                                     records_formula = edit_ws.get_all_values(value_render_option='FORMULA')
                                     
@@ -398,8 +435,12 @@ else:
                                             if st.form_submit_button("💾 સુધારા સેવ કરો"):
                                                 with st.spinner("સુધારા સેવ થઈ રહ્યા છે..."):
                                                     update_data = [edit_answers.get(c, "") for c in records_display[0]]
-                                                    # gspread નું સાચું અપડેટ ફંક્શન
                                                     edit_ws.update(f"A{target_row_idx + 1}:Z{target_row_idx + 1}", [update_data], value_input_option='USER_ENTERED')
+                                                    
+                                                    # જો Setup શીટ સફળતાપૂર્વક એડિટ થઈ હોય તો વેરિફિકેશન રીસેટ કરી દેવું જેથી ફરી પાસવર્ડ માંગે
+                                                    if sel_edit_ws_name.lower() == "setup":
+                                                        st.session_state.setup_edit_verified = False
+                                                        
                                                     st.success("✅ ડેટા સફળતાપૂર્વક સુધરી ગયો છે!")
                                     else: 
                                         st.info(f"'{sel_ws_name}' ટેબમાં હજુ કોઈ ડેટા નથી.")

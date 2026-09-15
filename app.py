@@ -66,7 +66,7 @@ else:
         "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
-    if st.sidebar.button("લોગ આઉટ", use_container_width=True):
+    if st.sidebar.button("લોગ આઉਟ", use_container_width=True):
         st.session_state.form_unlocked = False
         logout()
 
@@ -325,15 +325,21 @@ else:
 
                             with tab_edit:
                                 try:
-                                    data_ws = sheet.worksheet(data_sheet_name)
-                                    all_records = data_ws.get_all_values(value_render_option='FORMULA')
+                                    all_ws = sheet.worksheets()
+                                    all_ws_names = [w.title for w in all_ws]
+                                    
+                                    sel_edit_ws_name = st.selectbox("📋 સુધારવા માટે ડેટા ટેબ પસંદ કરો:", all_ws_names, key="edit_ws_select")
+                                    edit_ws = sheet.worksheet(sel_edit_ws_name)
+                                    
+                                    all_records = edit_ws.get_all_values(value_render_option='FORMULA')
+                                    
                                     if len(all_records) > 1:
                                         df = pd.DataFrame(all_records[1:], columns=all_records[0])
                                         st.dataframe(df, use_container_width=True)
                                         
                                         st.markdown("### ✏️ એન્ટ્રી સુધારો")
                                         options = [f"Row {i+2}: " + " | ".join(row[:3]) for i, row in enumerate(all_records[1:])]
-                                        selected_idx = st.selectbox("સુધારવા માટે એન્ટ્રી પસંદ કરો:", range(len(options)), format_func=lambda x: options[x])
+                                        selected_idx = st.selectbox("સુધારવા માટે એન્ટ્રી પસંદ કરો:", range(len(options)), format_func=lambda x: options[x], key="edit_row_select")
                                         selected_row = all_records[selected_idx + 1]
                                         
                                         with st.form("edit_form"):
@@ -366,7 +372,6 @@ else:
                                                             except:
                                                                 edit_answers[col_name] = old_val
                                                         else:
-                                                            # અતિ મહત્ત્વનું: જો નવો ફોટો અપલોડ ન કર્યો હોય, તો જૂની ફોર્મ્યુલા/લિંક યથાવત રાખવી!
                                                             edit_answers[col_name] = old_val
                                                     else: edit_answers[col_name] = st.text_input(col_name, value=old_val, key=f"edit_txt_{col_name}")
                                                 else:
@@ -376,10 +381,12 @@ else:
                                             if st.form_submit_button("💾 સુધારા સેવ કરો"):
                                                 with st.spinner("સુધારા સેવ થઈ રહ્યા છે..."):
                                                     update_data = [edit_answers.get(c, "") for c in all_records[0]]
-                                                    sheet.values_update(f"{data_sheet_name}!A{selected_idx + 2}:Z{selected_idx + 2}", params={'valueInputOption': 'USER_ENTERED'}, body={'values': [update_data]})
+                                                    edit_ws.values_update(f"A{selected_idx + 2}:Z{selected_idx + 2}", params={'valueInputOption': 'USER_ENTERED'}, body={'values': [update_data]})
                                                     st.success("✅ ડેટા સફળતાપૂર્વક સુધરી ગયો છે!")
-                                    else: st.info("કોઈ જૂનો ડેટા નથી.")
-                                except: st.warning(f"હજુ '{data_sheet_name}' માં કોઈ ડેટા સેવ થયો નથી.")
+                                    else: 
+                                        st.info(f"'{sel_ws_name}' ટેબમાં હજુ કોઈ ડેટા નથી.")
+                                except Exception as e: 
+                                    st.warning(f"ડેટા લોડ કરવામાં એરર: {e}")
                         else: st.warning("⚠️ Setup પાનામાં પ્રશ્નો મળતા નથી.")
                     except gspread.exceptions.WorksheetNotFound: st.error("⚠️ Setup પાનું મળતું નથી.")
                 else: st.info("⚠️ કોઈ ગૂગલ શીટ જોડાયેલી નથી.")

@@ -3,6 +3,7 @@ from auth import login_form, logout
 from modules.reports import show_report_module
 from database import supabase
 import datetime
+from datetime import datetime as dt, timedelta
 import json
 import base64
 import requests
@@ -331,31 +332,37 @@ else:
                                     sel_edit_ws_name = st.selectbox("📋 સુધારવા માટે ડેટા ટેબ પસંદ કરો:", all_ws_names, key="edit_ws_select")
                                     edit_ws = sheet.worksheet(sel_edit_ws_name)
                                     
-                                    all_records = edit_ws.get_all_values(value_render_option='FORMULA')
+                                    # બે વાર ડેટા મેળવવો: એક ડિસ્પ્લે માટે ફોર્મેટ થયેલો, બીજો સેવિંગ માટે અસલ ફોર્મ્યુલા વાળો
+                                    records_display = edit_ws.get_all_values(value_render_option='FORMATTED_VALUE')
+                                    records_formula = edit_ws.get_all_values(value_render_option='FORMULA')
                                     
-                                    if len(all_records) > 1:
-                                        df = pd.DataFrame(all_records[1:], columns=all_records[0])
+                                    if len(records_display) > 1:
+                                        df = pd.DataFrame(records_display[1:], columns=records_display[0])
                                         st.dataframe(df, use_container_width=True)
                                         
                                         st.markdown("### ✏️ એન્ટ્રી સુધારો")
-                                        options = [f"Row {i+2}: " + " | ".join([str(v) for v in row[:3]]) for i, row in enumerate(all_records[1:])]
+                                        options = [f"Row {i+2}: " + " | ".join([str(v) for v in row[:3]]) for i, row in enumerate(records_display[1:])]
                                         selected_idx = st.selectbox("સુધારવા માટે એન્ટ્રી પસંદ કરો:", range(len(options)), format_func=lambda x: options[x], key="edit_row_select")
-                                        selected_row = all_records[selected_idx + 1]
+                                        
+                                        selected_row_display = records_display[selected_idx + 1]
+                                        selected_row_formula = records_formula[selected_idx + 1]
                                         
                                         with st.form("edit_form"):
                                             edit_answers = {}
-                                            for col_idx, col_name in enumerate(all_records[0]):
-                                                old_val = selected_row[col_idx] if col_idx < len(selected_row) else ""
+                                            for col_idx, col_name in enumerate(records_display[0]):
+                                                old_val_display = selected_row_display[col_idx] if col_idx < len(selected_row_display) else ""
+                                                old_val_formula = selected_row_formula[col_idx] if col_idx < len(selected_row_formula) else ""
+                                                
                                                 q = next((item for item in questions_list if item["name"] == col_name), None)
                                                 
                                                 if q:
                                                     mode = q['edit_mode']
-                                                    if mode == "6": edit_answers[col_name] = old_val
+                                                    if mode == "6": edit_answers[col_name] = old_val_formula if old_val_formula else old_val_display
                                                     elif mode in ["2", "3", "4", "5"]:
-                                                        st.text_input(f"{col_name} (લોક)", value=old_val, disabled=True, key=f"edit_lock_{col_name}")
-                                                        edit_answers[col_name] = old_val
+                                                        st.text_input(f"{col_name} (લોક)", value=old_val_display, disabled=True, key=f"edit_lock_{col_name}")
+                                                        edit_answers[col_name] = old_val_formula if old_val_formula else old_val_display
                                                     elif q['type'] == "9": 
-                                                        if old_val:
+                                                        if old_val_formula:
                                                             st.markdown(f"**{col_name}**: (પહેલેથી ફોટો સેવ છે)")
                                                         else:
                                                             st.markdown(f"**{col_name}**: (કોઈ ફોટો નથી)")
@@ -368,19 +375,21 @@ else:
                                                                 encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
                                                                 payload = {"filename": f_up.name, "mimeType": f_up.type, "bytes": encoded_bytes}
                                                                 res = requests.post(apps_script_url, json=payload).json()
-                                                                edit_answers[col_name] = f'=IMAGE("{res["url"]}")' if "url" in res else old_val
+                                                                edit_answers[col_name] = f'=IMAGE("{res["url"]}")' if "url" in res else old_val_formula
                                                             except:
-                                                                edit_answers[col_name] = old_val
+                                                                edit_answers[col_name] = old_val_formula
                                                         else:
-                                                            edit_answers[col_name] = old_val
-                                                    else: edit_answers[col_name] = st.text_input(col_name, value=old_val, key=f"edit_txt_{col_name}")
+                                                            # અતિ મહત્ત્વનું: જૂની ફોર્મ્યુલા/લિંક યથાવત રાખવી
+                                                            edit_answers[col_name] = old_val_formula if old_val_formula else old_val_display
+                                                    else: 
+                                                        edit_answers[col_name] = st.text_input(col_name, value=old_val_display, key=f"edit_txt_{col_name}")
                                                 else:
-                                                    st.text_input(f"{col_name} (જૂનો ડેટા)", value=old_val, disabled=True, key=f"edit_old_{col_name}")
-                                                    edit_answers[col_name] = old_val
+                                                    st.text_input(f"{col_name} (જૂનો ડેટા)", value=old_val_display, disabled=True, key=f"edit_old_{col_name}")
+                                                    edit_answers[col_name] = old_val_formula if old_val_formula else old_val_display
                                                     
                                             if st.form_submit_button("💾 સુધારા સેવ કરો"):
                                                 with st.spinner("સુધારા સેવ થઈ રહ્યા છે..."):
-                                                    update_data = [edit_answers.get(c, "") for c in all_records[0]]
+                                                    update_data = [edit_answers.get(c, "") for c in records_display[0]]
                                                     edit_ws.values_update(f"A{selected_idx + 2}:Z{selected_idx + 2}", params={'valueInputOption': 'USER_ENTERED'}, body={'values': [update_data]})
                                                     st.success("✅ ડેટા સફળતાપૂર્વક સુધરી ગયો છે!")
                                     else: 

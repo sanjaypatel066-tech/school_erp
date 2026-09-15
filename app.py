@@ -326,7 +326,7 @@ else:
                             with tab_edit:
                                 try:
                                     data_ws = sheet.worksheet(data_sheet_name)
-                                    all_records = data_ws.get_all_values()
+                                    all_records = data_ws.get_all_values(value_render_option='FORMULA')
                                     if len(all_records) > 1:
                                         df = pd.DataFrame(all_records[1:], columns=all_records[0])
                                         st.dataframe(df, use_container_width=True)
@@ -357,7 +357,6 @@ else:
                                                         f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો (જો બદલવો હોય તો જ)", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_file_{col_name}")
                                                         
                                                         if f_up:
-                                                            # જો નવો ફોટો અપલોડ કર્યો હોય તો જ નવી લિંક બનાવવી
                                                             try:
                                                                 file_bytes = f_up.getvalue()
                                                                 encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
@@ -367,7 +366,7 @@ else:
                                                             except:
                                                                 edit_answers[col_name] = old_val
                                                         else:
-                                                            # જો નવો ફોટો ન નાખ્યો હોય, તો જૂનો ફોટો (old_val) યથાવત રાખવો!
+                                                            # અતિ મહત્ત્વનું: જો નવો ફોટો અપલોડ ન કર્યો હોય, તો જૂની ફોર્મ્યુલા/લિંક યથાવત રાખવી!
                                                             edit_answers[col_name] = old_val
                                                     else: edit_answers[col_name] = st.text_input(col_name, value=old_val, key=f"edit_txt_{col_name}")
                                                 else:

@@ -49,7 +49,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Google Apps Script Web App URL (તમારી આપેલી લિંક)
 APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvUiWKaTEYlC3f0xZgjX75q-o8Tzmukuioz07SSpfS7g32aqGhdsRtbIN7y8h_dU2_/exec"
 
 if 'logged_in' not in st.session_state:
@@ -286,11 +285,7 @@ else:
                                                             try:
                                                                 file_bytes = file_obj.getvalue()
                                                                 encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
-                                                                payload = {
-                                                                    "filename": file_obj.name,
-                                                                    "mimeType": file_obj.type,
-                                                                    "bytes": encoded_bytes
-                                                                }
+                                                                payload = {"filename": file_obj.name, "mimeType": file_obj.type, "bytes": encoded_bytes}
                                                                 response = requests.post(APPS_SCRIPT_URL, json=payload)
                                                                 res_data = response.json()
                                                                 if "url" in res_data:
@@ -298,7 +293,7 @@ else:
                                                                     form_answers[q['name']] = f'=IMAGE("{img_url}")'
                                                                 else:
                                                                     form_answers[q['name']] = file_obj.name
-                                                            except Exception as e:
+                                                            except:
                                                                 form_answers[q['name']] = file_obj.name
                                                         else:
                                                             form_answers[q['name']] = ""

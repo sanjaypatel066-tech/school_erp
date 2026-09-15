@@ -4,11 +4,10 @@ from modules.reports import show_report_module
 from database import supabase
 import datetime
 import json
-import io
+import base64
+import requests
 import gspread
 from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaIoBaseUpload
 import pandas as pd
 
 # 1. Page Config & Clean Modern UI/UX
@@ -49,6 +48,9 @@ st.markdown("""
     [data-testid="stSidebar"] { background-color: #FFFFFF; border-right: 1px solid #E2E8F0; }
     </style>
     """, unsafe_allow_html=True)
+
+# Google Apps Script Web App URL (તમારી આપેલી લિંક)
+APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvUiWKaTEYlC3f0xZgjX75q-o8Tzmukuioz07SSpfS7g32aqGhdsRtbIN7y8h_dU2_/exec"
 
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
@@ -93,7 +95,6 @@ else:
                 scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
                 client = gspread.authorize(creds)
-                drive_service = build('drive', 'v3', credentials=creds)
                 
                 all_sheets = client.list_spreadsheet_files()
                 
@@ -111,7 +112,6 @@ else:
                         
                         row_map = {}
                         setup_password = ""
-                        global_folder_id = "1WdU4f1b3R166DoBDaPfVN2qtgkUKum93"
                         
                         for i, row in enumerate(setup_data):
                             if not row: continue
@@ -130,12 +130,6 @@ else:
                             elif "પાસવર્ડ" in header or "password" in header:
                                 if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
                                     setup_password = str(row[1]).strip()
-                            
-                            for cell in row:
-                                if "folder id" in str(cell).strip().lower():
-                                    cell_idx = row.index(cell)
-                                    if cell_idx + 1 < len(row) and str(row[cell_idx + 1]).strip() not in ["", "-"]:
-                                        global_folder_id = str(row[cell_idx + 1]).strip()
 
                         # --- વન-ટાઇમ સેશન પાસવર્ડ ચેક ---
                         if setup_password and not st.session_state.form_unlocked:
@@ -290,21 +284,21 @@ else:
                                                         file_obj = form_answers.get(q['name'])
                                                         if file_obj:
                                                             try:
-                                                                file_ext = file_obj.name.split('.')[-1]
-                                                                unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
-                                                                
-                                                                file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
-                                                                media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
-                                                                file = drive_service.files().create(body=file_metadata, media_body=media, fields='id', supportsAllDrives=True).execute()
-                                                                
-                                                                # પરમિશન સેટ કરીને પબ્લિક લિંક જનરેટ કરવી
-                                                                file_id = file.get('id')
-                                                                drive_service.permissions().create(fileId=file_id, body={'role': 'reader', 'type': 'anyone'}).execute()
-                                                                
-                                                                img_url = f"https://drive.google.com/uc?export=view&id={file_id}"
-                                                                form_answers[q['name']] = f'=IMAGE("{img_url}")'
+                                                                file_bytes = file_obj.getvalue()
+                                                                encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
+                                                                payload = {
+                                                                    "filename": file_obj.name,
+                                                                    "mimeType": file_obj.type,
+                                                                    "bytes": encoded_bytes
+                                                                }
+                                                                response = requests.post(APPS_SCRIPT_URL, json=payload)
+                                                                res_data = response.json()
+                                                                if "url" in res_data:
+                                                                    img_url = res_data["url"]
+                                                                    form_answers[q['name']] = f'=IMAGE("{img_url}")'
+                                                                else:
+                                                                    form_answers[q['name']] = file_obj.name
                                                             except Exception as e:
-                                                                # ક્વોટા એરર આવે તો પણ ફાઇલનું નામ અને બેકઅપ લિંક સાચવવી
                                                                 form_answers[q['name']] = file_obj.name
                                                         else:
                                                             form_answers[q['name']] = ""
@@ -351,7 +345,17 @@ else:
                                                         else:
                                                             st.markdown(f"**{col_name}**: (કોઈ ફોટો નથી)")
                                                         f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_file_{col_name}")
-                                                        edit_answers[col_name] = f_up.name if f_up else old_val
+                                                        if f_up:
+                                                            try:
+                                                                file_bytes = f_up.getvalue()
+                                                                encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
+                                                                payload = {"filename": f_up.name, "mimeType": f_up.type, "bytes": encoded_bytes}
+                                                                res = requests.post(APPS_SCRIPT_URL, json=payload).json()
+                                                                edit_answers[col_name] = f'=IMAGE("{res["url"]}")' if "url" in res else f_up.name
+                                                            except:
+                                                                edit_answers[col_name] = f_up.name
+                                                        else:
+                                                            edit_answers[col_name] = old_val
                                                     else: edit_answers[col_name] = st.text_input(col_name, value=old_val, key=f"edit_txt_{col_name}")
                                                 else:
                                                     st.text_input(f"{col_name} (જૂનો ડેટા)", value=old_val, disabled=True, key=f"edit_old_{col_name}")

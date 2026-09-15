@@ -332,7 +332,6 @@ else:
                                     sel_edit_ws_name = st.selectbox("📋 સુધારવા માટે ડેટા ટેબ પસંદ કરો:", all_ws_names, key="edit_ws_select")
                                     edit_ws = sheet.worksheet(sel_edit_ws_name)
                                     
-                                    # બે વાર ડેટા મેળવવો: એક ડિસ્પ્લે માટે ફોર્મેટ થયેલો, બીજો સેવિંગ માટે અસલ ફોર્મ્યુલા વાળો
                                     records_display = edit_ws.get_all_values(value_render_option='FORMATTED_VALUE')
                                     records_formula = edit_ws.get_all_values(value_render_option='FORMULA')
                                     
@@ -353,6 +352,15 @@ else:
                                                 old_val_display = selected_row_display[col_idx] if col_idx < len(selected_row_display) else ""
                                                 old_val_formula = selected_row_formula[col_idx] if col_idx < len(selected_row_formula) else ""
                                                 
+                                                # તારીખના સીરીયલ નંબરને ફોર્મેટમાં ફેરવવું
+                                                if old_val_display and str(old_val_display).isdigit() and len(str(old_val_display)) == 5:
+                                                    try:
+                                                        base_date = dt(1899, 12, 30)
+                                                        converted_date = base_date + timedelta(days=int(old_val_display))
+                                                        old_val_display = converted_date.strftime("%d-%m-%Y")
+                                                    except:
+                                                        pass
+
                                                 q = next((item for item in questions_list if item["name"] == col_name), None)
                                                 
                                                 if q:
@@ -379,7 +387,6 @@ else:
                                                             except:
                                                                 edit_answers[col_name] = old_val_formula
                                                         else:
-                                                            # અતિ મહત્ત્વનું: જૂની ફોર્મ્યુલા/લિંક યથાવત રાખવી
                                                             edit_answers[col_name] = old_val_formula if old_val_formula else old_val_display
                                                     else: 
                                                         edit_answers[col_name] = st.text_input(col_name, value=old_val_display, key=f"edit_txt_{col_name}")

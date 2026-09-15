@@ -384,11 +384,9 @@ else:
                 sel_sheet_id = sheet_options[sel_sheet_name]
                 sheet = client.open_by_key(sel_sheet_id)
                 
-                # શીટની અંદર રહેલી બધી જ વર્કશીટ્સ (ટેબ્સ) મેળવવી
                 worksheets = sheet.worksheets()
                 ws_names = [w.title for w in worksheets]
                 
-                # ડ્રોપડાઉન દ્વારા યુઝરને ટેબ પસંદ કરવા દેવી (દા.ત. Entry અથવા Data 2026-27)
                 sel_ws_name = st.selectbox("📋 ડેટા ટેબ (Worksheet) પસંદ કરો:", ws_names, key="viewer_worksheet")
                 target_ws = sheet.worksheet(sel_ws_name)
                 
@@ -422,14 +420,26 @@ else:
                                     if "photo" in h.lower() or "ફોટો" in h.lower():
                                         photo_val = str(row[h])
                                         break
-                                if photo_val and "http" in photo_val:
-                                    if '"' in photo_val:
-                                        parts = photo_val.split('"')
-                                        if len(parts) > 1:
-                                            img_url = parts[1]
+                                
+                                if photo_val:
+                                    img_url = ""
+                                    if "http" in photo_val:
+                                        if '"' in photo_val:
+                                            parts = photo_val.split('"')
+                                            for p in parts:
+                                                if "http" in p:
+                                                    img_url = p
+                                                    break
+                                        else:
+                                            img_url = photo_val
+                                    
+                                    if img_url:
+                                        try:
                                             st.image(img_url, caption="અપલોડેડ ફોટો", width=250)
+                                        except:
+                                            st.warning("ફોટો લોડ કરવામાં તકલીફ છે.")
                                     else:
-                                        st.image(photo_val, caption="અપલોડેડ ફોટો", width=250)
+                                        st.info(f"સેવ થયેલ માહિતી: {photo_val}")
                                 else:
                                     st.info("આ એન્ટ્રીમાં કોઈ ફોટો ઉપલબ્ધ નથી.")
                 else:
@@ -527,5 +537,7 @@ else:
                                 st.error("❌ આ યુઝરનેમ પહેલેથી ડેટાબેઝમાં છે.")
                         else:
                             st.warning("⚠️ કૃપા કરીને બધી વિગતો ભરો.")
+            else:
+                st.info("🔒 નવા શિક્ષકને ઉમેરવાનો અધિકાર માત્ર આચાર્યશ્રી પાસે જ છે.")
             else:
                 st.info("🔒 નવા શિક્ષકને ઉમેરવાનો અધિકાર માત્ર આચાર્યશ્રી પાસે જ છે.")

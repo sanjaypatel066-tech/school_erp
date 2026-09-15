@@ -380,64 +380,60 @@ else:
             
             if all_sheets:
                 sheet_options = {s['name']: s['id'] for s in all_sheets}
-                sel_sheet_name = st.selectbox("📂 ફોર્મ પસંદ કરો:", list(sheet_options.keys()), key="viewer_sheet")
+                sel_sheet_name = st.selectbox("📂 ગૂગલ ફાઇલ પસંદ કરો:", list(sheet_options.keys()), key="viewer_sheet")
                 sel_sheet_id = sheet_options[sel_sheet_name]
                 sheet = client.open_by_key(sel_sheet_id)
                 
-                # ડેટા શીટ શોધવી (પ્રથમ 'Entry' અથવા 'Data ...')
-                target_ws = None
-                for ws in sheet.worksheets():
-                    if "Entry" in ws.title or "Data" in ws.title:
-                        target_ws = ws
-                        break
+                # શીટની અંદર રહેલી બધી જ વર્કશીટ્સ (ટેબ્સ) મેળવવી
+                worksheets = sheet.worksheets()
+                ws_names = [w.title for w in worksheets]
                 
-                if target_ws:
-                    records = target_ws.get_all_values()
-                    if len(records) > 1:
-                        headers = records[0]
-                        df = pd.DataFrame(records[1:], columns=headers)
-                        
-                        st.markdown("---")
-                        col_search_1, col_search_2 = st.columns(2)
-                        search_col = col_search_1.selectbox("સર્ચ કરવા માટે કોલમ પસંદ કરો:", headers)
-                        search_val = col_search_2.text_input("શોધવા માટે નામ અથવા શબ્દ લખો:")
-                        
-                        if search_val:
-                            filtered_df = df[df[search_col].astype(str).str.contains(search_val, case=False, na=False)]
-                        else:
-                            filtered_df = df
-                            
-                        st.write(f"કુલ મળેલા પરિણામો: {len(filtered_df)}")
-                        
-                        for idx, row in filtered_df.iterrows():
-                            with st.expander(f"📁 રેકોર્ડ #{idx+1} - {row.get(headers[0], 'વિગત')}"):
-                                col_info, col_img = st.columns([2, 1])
-                                with col_info:
-                                    for h in headers:
-                                        if "photo" not in h.lower() and "ફોટો" not in h.lower():
-                                            st.markdown(f"**{h}:** {row[h]}")
-                                with col_img:
-                                    # ફોટો લિંક શોધવી
-                                    photo_val = ""
-                                    for h in headers:
-                                        if "photo" in h.lower() or "ફોટો" in h.lower():
-                                            photo_val = str(row[h])
-                                            break
-                                    if photo_val and "http" in photo_val:
-                                        # =IMAGE("url") માંથી યુઆરએલ એક્સટ્રેક્ટ કરવી
-                                        if '"' in photo_val:
-                                            parts = photo_val.split('"')
-                                            if len(parts) > 1:
-                                                img_url = parts[1]
-                                                st.image(img_url, caption="અપલોડેડ ફોટો", width=250)
-                                        else:
-                                            st.image(photo_val, caption="અપલોડેડ ફોટો", width=250)
-                                    else:
-                                        st.info("આ એન્ટ્રીમાં કોઈ ફોટો ઉપલબ્ધ નથી.")
+                # ડ્રોપડાઉન દ્વારા યુઝરને ટેબ પસંદ કરવા દેવી (દા.ત. Entry અથવા Data 2026-27)
+                sel_ws_name = st.selectbox("📋 ડેટા ટેબ (Worksheet) પસંદ કરો:", ws_names, key="viewer_worksheet")
+                target_ws = sheet.worksheet(sel_ws_name)
+                
+                records = target_ws.get_all_values()
+                if len(records) > 1:
+                    headers = records[0]
+                    df = pd.DataFrame(records[1:], columns=headers)
+                    
+                    st.markdown("---")
+                    col_search_1, col_search_2 = st.columns(2)
+                    search_col = col_search_1.selectbox("સર્ચ કરવા માટે કોલમ પસંદ કરો:", headers)
+                    search_val = col_search_2.text_input("શોધવા માટે નામ અથવા શબ્દ લખો:")
+                    
+                    if search_val:
+                        filtered_df = df[df[search_col].astype(str).str.contains(search_val, case=False, na=False)]
                     else:
-                        st.info("શીટમાં હજુ કોઈ ડેટા નથી.")
+                        filtered_df = df
+                        
+                    st.write(f"કુલ મળેલા પરિણામો: {len(filtered_df)}")
+                    
+                    for idx, row in filtered_df.iterrows():
+                        with st.expander(f"📁 રેકોર્ડ #{idx+1} - {row.get(headers[0], 'વિગત')}"):
+                            col_info, col_img = st.columns([2, 1])
+                            with col_info:
+                                for h in headers:
+                                    if "photo" not in h.lower() and "ફોટો" not in h.lower():
+                                        st.markdown(f"**{h}:** {row[h]}")
+                            with col_img:
+                                photo_val = ""
+                                for h in headers:
+                                    if "photo" in h.lower() or "ફોટો" in h.lower():
+                                        photo_val = str(row[h])
+                                        break
+                                if photo_val and "http" in photo_val:
+                                    if '"' in photo_val:
+                                        parts = photo_val.split('"')
+                                        if len(parts) > 1:
+                                            img_url = parts[1]
+                                            st.image(img_url, caption="અપલોડેડ ફોટો", width=250)
+                                    else:
+                                        st.image(photo_val, caption="અપલોડેડ ફોટો", width=250)
+                                else:
+                                    st.info("આ એન્ટ્રીમાં કોઈ ફોટો ઉપલબ્ધ નથી.")
                 else:
-                    st.warning("એન્ટ્રી કે ડેટા શીટ મળી નથી.")
+                    st.info("આ ટેબમાં હજુ કોઈ ડેટા નથી.")
         except Exception as e:
             st.error(f"એરર: {e}")
 

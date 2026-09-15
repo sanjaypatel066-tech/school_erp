@@ -66,7 +66,7 @@ else:
         "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
-    if st.sidebar.button("લોગ આઉਟ", use_container_width=True):
+    if st.sidebar.button("લોગ આઉટ", use_container_width=True):
         st.session_state.form_unlocked = False
         logout()
 
@@ -338,7 +338,7 @@ else:
                                         st.dataframe(df, use_container_width=True)
                                         
                                         st.markdown("### ✏️ એન્ટ્રી સુધારો")
-                                        options = [f"Row {i+2}: " + " | ".join(row[:3]) for i, row in enumerate(all_records[1:])]
+                                        options = [f"Row {i+2}: " + " | ".join([str(v) for v in row[:3]]) for i, row in enumerate(all_records[1:])]
                                         selected_idx = st.selectbox("સુધારવા માટે એન્ટ્રી પસંદ કરો:", range(len(options)), format_func=lambda x: options[x], key="edit_row_select")
                                         selected_row = all_records[selected_idx + 1]
                                         

@@ -67,7 +67,7 @@ else:
         "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
-    if st.sidebar.button("લોગ આઉટ", use_container_width=True):
+    if st.sidebar.button("લોગ આઉਟ", use_container_width=True):
         st.session_state.form_unlocked = False
         logout()
 
@@ -343,8 +343,9 @@ else:
                                         options = [f"Row {i+2}: " + " | ".join([str(v) for v in row[:3]]) for i, row in enumerate(records_display[1:])]
                                         selected_idx = st.selectbox("સુધારવા માટે એન્ટ્રી પસંદ કરો:", range(len(options)), format_func=lambda x: options[x], key="edit_row_select")
                                         
-                                        selected_row_display = records_display[selected_idx + 1]
-                                        selected_row_formula = records_formula[selected_idx + 1]
+                                        target_row_idx = selected_idx + 1
+                                        selected_row_display = records_display[target_row_idx]
+                                        selected_row_formula = records_formula[target_row_idx]
                                         
                                         with st.form("edit_form"):
                                             edit_answers = {}
@@ -352,7 +353,6 @@ else:
                                                 old_val_display = selected_row_display[col_idx] if col_idx < len(selected_row_display) else ""
                                                 old_val_formula = selected_row_formula[col_idx] if col_idx < len(selected_row_formula) else ""
                                                 
-                                                # તારીખના સીરીયલ નંબરને ફોર્મેટમાં ફેરવવું
                                                 if old_val_display and str(old_val_display).isdigit() and len(str(old_val_display)) == 5:
                                                     try:
                                                         base_date = dt(1899, 12, 30)
@@ -365,9 +365,10 @@ else:
                                                 
                                                 if q:
                                                     mode = q['edit_mode']
-                                                    if mode == "6": edit_answers[col_name] = old_val_formula if old_val_formula else old_val_display
+                                                    if mode == "6": 
+                                                        edit_answers[col_name] = old_val_formula if old_val_formula else old_val_display
                                                     elif mode in ["2", "3", "4", "5"]:
-                                                        st.text_input(f"{col_name} (લોક)", value=old_val_display, disabled=True, key=f"edit_lock_{col_name}")
+                                                        st.text_input(f"{col_name} (લોક)", value=old_val_display, disabled=True, key=f"edit_lock_{col_name}_{target_row_idx}")
                                                         edit_answers[col_name] = old_val_formula if old_val_formula else old_val_display
                                                     elif q['type'] == "9": 
                                                         if old_val_formula:
@@ -375,7 +376,7 @@ else:
                                                         else:
                                                             st.markdown(f"**{col_name}**: (કોઈ ફોટો નથી)")
                                                             
-                                                        f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો (જો બદલવો હોય તો જ)", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_file_{col_name}")
+                                                        f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો (જો બદલવો હોય તો જ)", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_file_{col_name}_{target_row_idx}")
                                                         
                                                         if f_up:
                                                             try:
@@ -389,15 +390,15 @@ else:
                                                         else:
                                                             edit_answers[col_name] = old_val_formula if old_val_formula else old_val_display
                                                     else: 
-                                                        edit_answers[col_name] = st.text_input(col_name, value=old_val_display, key=f"edit_txt_{col_name}")
+                                                        edit_answers[col_name] = st.text_input(col_name, value=old_val_display, key=f"edit_txt_{col_name}_{target_row_idx}")
                                                 else:
-                                                    st.text_input(f"{col_name} (જૂનો ડેટા)", value=old_val_display, disabled=True, key=f"edit_old_{col_name}")
+                                                    st.text_input(f"{col_name} (જૂનો ડેટા)", value=old_val_display, disabled=True, key=f"edit_old_{col_name}_{target_row_idx}")
                                                     edit_answers[col_name] = old_val_formula if old_val_formula else old_val_display
                                                     
                                             if st.form_submit_button("💾 સુધારા સેવ કરો"):
                                                 with st.spinner("સુધારા સેવ થઈ રહ્યા છે..."):
                                                     update_data = [edit_answers.get(c, "") for c in records_display[0]]
-                                                    edit_ws.values_update(f"A{selected_idx + 2}:Z{selected_idx + 2}", params={'valueInputOption': 'USER_ENTERED'}, body={'values': [update_data]})
+                                                    edit_ws.values_update(f"A{target_row_idx + 1}:Z{target_row_idx + 1}", params={'valueInputOption': 'USER_ENTERED'}, body={'values': [update_data]})
                                                     st.success("✅ ડેટા સફળતાપૂર્વક સુધરી ગયો છે!")
                                     else: 
                                         st.info(f"'{sel_ws_name}' ટેબમાં હજુ કોઈ ડેટા નથી.")

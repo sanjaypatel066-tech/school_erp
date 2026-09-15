@@ -415,6 +415,9 @@ else:
                                     if "photo" not in h.lower() and "ફોટો" not in h.lower():
                                         st.markdown(f"**{h}:** {row[h]}")
                             with col_img:
+                                # ડીબગ કરવા માટે આખી રો નો ડેટા પ્રિન્ટ કરવો
+                                st.write("Row Data:", dict(row))
+                                
                                 photo_val = ""
                                 for h, val in row.items():
                                     val_str = str(val)

@@ -580,7 +580,7 @@ else:
             st.markdown("### 📄 3. સત્તાવાર લેટર પેડ પ્રિવ્યુ")
             
             letter_box_html = f"""
-            <div style="background-color: #ffffff; padding: 25px; border: 2px solid #0A3663; border-radius: 8px; font-family: sans-serif; color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+            <div id="letter-pad-content" style="background-color: #ffffff; padding: 25px; border: 2px solid #0A3663; border-radius: 8px; font-family: sans-serif; color: #000; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
                 <table style="width: 100%; border-bottom: 2px solid #0A3663; padding-bottom: 10px; margin-bottom: 15px;">
                     <tr>
                         <td style="width: 15%; text-align: left; vertical-align: middle;">
@@ -617,7 +617,7 @@ else:
                 </div>
                 
                 {f'<div style="text-align: center; margin: 15px 0; border: 1px dashed #cbd5e1; padding: 15px;"><p style="font-size:12px; color:#64748b; margin:0;">[ફોટો / ચિત્ર વિસ્તાર]</p></div>' if c_img else ''}
-                {f'<div style="border: 1px dashed #cbd5e1; padding: 10px; text-align: center; margin: 15px 0; font-size: 12px; color: #64748b;">[ડેટા કોષ્ટક / ટેબલ વિસ્તાર]</div>' if c_tbl else ''}
+                {f'<div style="border: 1px dashed #cbd5e1; padding: 10px; text-align: center; margin: 15px 0; font-size: 12px; color: #64748b;">[ડેટა કોષ્ટક / ટેબલ વિસ્તાર]</div>' if c_tbl else ''}
                 
                 <table style="width: 100%; margin-top: 40px; padding-top: 15px; border-top: 1px dashed #cbd5e1;">
                     <tr>
@@ -634,11 +634,18 @@ else:
             st.markdown(letter_box_html, unsafe_allow_html=True)
             
             st.markdown("<br>", unsafe_allow_html=True)
-            col_p1, col_p2 = st.columns(2)
-            if col_p1.button("📥 PDF ડાઉનલોડ કરો", key="btn_pdf_lp"):
-                st.success("✅ લેટર પેડ PDF ફોર્મેટમાં તૈયાર છે! (પ્રિન્ટ માટે Ctrl+P દબાવો)")
-            if col_p2.button("☁️ Google Drive માં સેવ કરો", key="btn_drv_lp"):
-                st.success("✅ સત્તાવાર લેટર પેડ Google Drive માં સફળતાપૂર્વક સેવ થઈ ગયું છે!")
+            
+            # એચટીએમએલ ફાઇલ તરીકે ડાઉનલોડ કરાવવાની સચોટ પદ્ધતિ (જેથી બ્રાઉઝરમાંથી સીધી PDF પ્રિન્ટ કરી શકાય)
+            b64_html = base64.b64encode(letter_box_html.encode("utf-8")).decode("utf-8")
+            download_filename = f"Letter_Pad_{datetime.date.today().strftime('%d-%m-%Y')}.html"
+            
+            st.markdown(f"""
+                <div style="display: flex; gap: 10px;">
+                    <a href="data:text/html;base64,{b64_html}" download="{download_filename}" style="width: 100%; background: linear-gradient(135deg, #16A34A 0%, #15803D 100%); color: white; border-radius: 25px; padding: 10px 20px; font-size: 15px; font-weight: 600; text-align: center; text-decoration: none; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3); display: inline-block;">
+                        📥 લેટર પેડ ફાઇલ ડાઉનલોડ કરો (Print to PDF)
+                    </a>
+                </div>
+            """, unsafe_allow_html=True)
 
     elif menu == "🤖 AI અહેવાલ":
         st.markdown("<div class='premium-header'><h2>🤖 સ્માર્ટ AI અહેવાલ લેખક</h2></div>", unsafe_allow_html=True)

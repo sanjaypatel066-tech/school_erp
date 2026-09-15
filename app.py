@@ -49,8 +49,6 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwvUiWKaTEYlC3f0xZgjX75q-o8Tzmukuioz07SSpfS7g32aqGhdsRtbIN7y8h_dU2_/exec"
-
 if 'logged_in' not in st.session_state:
     st.session_state.logged_in = False
 if 'form_unlocked' not in st.session_state:
@@ -68,7 +66,7 @@ else:
         "📝 અહેવાલ મોડ્યુલ", "📊 સ્માર્ટ પત્રક", "🤖 AI અહેવાલ", "⚙️ સેટિંગ્સ"
     ])
     
-    if st.sidebar.button("લોગ આઉટ", use_container_width=True):
+    if st.sidebar.button("લોગ આઉਟ", use_container_width=True):
         st.session_state.form_unlocked = False
         logout()
 
@@ -111,6 +109,8 @@ else:
                         
                         row_map = {}
                         setup_password = ""
+                        global_folder_id = "1WdU4f1b3R166DoBDaPfVN2qtgkUKum93"
+                        apps_script_url = ""
                         
                         for i, row in enumerate(setup_data):
                             if not row: continue
@@ -129,6 +129,17 @@ else:
                             elif "પાસવર્ડ" in header or "password" in header:
                                 if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
                                     setup_password = str(row[1]).strip()
+                            
+                            for cell in row:
+                                cell_lower = str(cell).strip().lower()
+                                if "folder id" in cell_lower:
+                                    cell_idx = row.index(cell)
+                                    if cell_idx + 1 < len(row) and str(row[cell_idx + 1]).strip() not in ["", "-"]:
+                                        global_folder_id = str(row[cell_idx + 1]).strip()
+                                if "deploy" in cell_lower or "script url" in cell_lower or "apps script" in cell_lower:
+                                    cell_idx = row.index(cell)
+                                    if cell_idx + 1 < len(row) and str(row[cell_idx + 1]).strip() not in ["", "-"]:
+                                        apps_script_url = str(row[cell_idx + 1]).strip()
 
                         # --- વન-ટાઇમ સેશન પાસવર્ડ ચેક ---
                         if setup_password and not st.session_state.form_unlocked:
@@ -277,37 +288,40 @@ else:
                                         if missing:
                                             st.error(f"⚠️ ફરજિયાત ખાનાં ભરો: {', '.join(missing)}")
                                         else:
-                                            with st.spinner(f"ડેટા '{data_sheet_name}' માં સેવ થઈ રહ્યો છે..."):
-                                                for q in questions_list:
-                                                    if q['type'] == "9":
-                                                        file_obj = form_answers.get(q['name'])
-                                                        if file_obj:
-                                                            try:
-                                                                file_bytes = file_obj.getvalue()
-                                                                encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
-                                                                payload = {"filename": file_obj.name, "mimeType": file_obj.type, "bytes": encoded_bytes}
-                                                                response = requests.post(APPS_SCRIPT_URL, json=payload)
-                                                                res_data = response.json()
-                                                                if "url" in res_data:
-                                                                    img_url = res_data["url"]
-                                                                    form_answers[q['name']] = f'=IMAGE("{img_url}")'
-                                                                else:
+                                            if not apps_script_url:
+                                                st.error("⚠️ Setup પાનામાં 'Deploy' લિંક મળેલી નથી!")
+                                            else:
+                                                with st.spinner(f"ડેટા '{data_sheet_name}' માં સેવ થઈ રહ્યો છે..."):
+                                                    for q in questions_list:
+                                                        if q['type'] == "9":
+                                                            file_obj = form_answers.get(q['name'])
+                                                            if file_obj:
+                                                                try:
+                                                                    file_bytes = file_obj.getvalue()
+                                                                    encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
+                                                                    payload = {"filename": file_obj.name, "mimeType": file_obj.type, "bytes": encoded_bytes}
+                                                                    response = requests.post(apps_script_url, json=payload)
+                                                                    res_data = response.json()
+                                                                    if "url" in res_data:
+                                                                        img_url = res_data["url"]
+                                                                        form_answers[q['name']] = f'=IMAGE("{img_url}")'
+                                                                    else:
+                                                                        form_answers[q['name']] = file_obj.name
+                                                                except:
                                                                     form_answers[q['name']] = file_obj.name
-                                                            except:
-                                                                form_answers[q['name']] = file_obj.name
-                                                        else:
-                                                            form_answers[q['name']] = ""
-                                                            
-                                                try: data_ws = sheet.worksheet(data_sheet_name)
-                                                except:
-                                                    data_ws = sheet.add_worksheet(title=data_sheet_name, rows="1000", cols="20")
-                                                    data_ws.append_row([q['name'] for q in questions_list], value_input_option='USER_ENTERED')
-                                                
-                                                row_data = ["" if form_answers.get(q['name']) is None else str(form_answers.get(q['name'])) for q in questions_list]
-                                                data_ws.append_row(row_data, value_input_option='USER_ENTERED')
-                                                
-                                                st.session_state.form_state_cache = {}
-                                                st.success(f"✅ ડેટા સફળતાપૂર્વક '{data_sheet_name}' માં સેવ થઈ ગયો છે!")
+                                                            else:
+                                                                form_answers[q['name']] = ""
+                                                                
+                                                    try: data_ws = sheet.worksheet(data_sheet_name)
+                                                    except:
+                                                        data_ws = sheet.add_worksheet(title=data_sheet_name, rows="1000", cols="20")
+                                                        data_ws.append_row([q['name'] for q in questions_list], value_input_option='USER_ENTERED')
+                                                    
+                                                    row_data = ["" if form_answers.get(q['name']) is None else str(form_answers.get(q['name'])) for q in questions_list]
+                                                    data_ws.append_row(row_data, value_input_option='USER_ENTERED')
+                                                    
+                                                    st.session_state.form_state_cache = {}
+                                                    st.success(f"✅ ડેટા સફળતાપૂર્વક '{data_sheet_name}' માં સેવ થઈ ગયો છે!")
 
                             with tab_edit:
                                 try:
@@ -345,7 +359,7 @@ else:
                                                                 file_bytes = f_up.getvalue()
                                                                 encoded_bytes = base64.b64encode(file_bytes).decode('utf-8')
                                                                 payload = {"filename": f_up.name, "mimeType": f_up.type, "bytes": encoded_bytes}
-                                                                res = requests.post(APPS_SCRIPT_URL, json=payload).json()
+                                                                res = requests.post(apps_script_url, json=payload).json()
                                                                 edit_answers[col_name] = f'=IMAGE("{res["url"]}")' if "url" in res else f_up.name
                                                             except:
                                                                 edit_answers[col_name] = f_up.name
@@ -443,7 +457,7 @@ else:
                                             
                                         try:
                                             st.image(direct_img_url, caption="અપલોડેડ ફોટો", width=250)
-                                        except Exception as e:
+                                        except:
                                             st.warning("ફોટો લોડ કરવામાં તકલીફ છે.")
                                     else:
                                         st.info(f"સેવ થયેલ માહિતી: {photo_val}")

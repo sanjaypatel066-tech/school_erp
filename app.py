@@ -589,9 +589,10 @@ else:
             api_key = st.secrets.get("GEMINI_API_KEY", "")
             if api_key:
                 genai.configure(api_key=api_key)
-                ai_model = genai.GenerativeModel("gemini-1.5-flash")
+                # અહીં મોડ્યુલનું નામ અપડેટ કરીને લેટેસ્ટ વર્ઝન મૂક્યું છે
+                ai_model = genai.GenerativeModel("gemini-3.5 flash-lite")
                 
-                prompt_topic = st.text_input("અહેવાલનો વિષય અથવા મુખ્ય મુદ્દાઓ લખੋ:", placeholder="દા.ત. શાળામાં યોજાયેલ વિજ્ઞાન મેળો અને પ્રદર્શન...")
+                prompt_topic = st.text_input("અહેવાલનો વિષય અથવા મુખ્ય મુદ્દાઓ લખો:", placeholder="દા.ત. શાળામાં યોજાયેલ વિજ્ઞાન મેળો અને પ્રદર્શન...")
                 report_type = st.selectbox("અહેવાલનો પ્રકાર પસંદ કરો:", ["ઔપચારિક અહેવાલ", "ટૂંકો અહેવાલ (સોશિયલ મીડિયા માટે)", "વિગતવાર અહેવાલ", "પ્રેસ નોટ"])
                 
                 if st.button("✨ AI પાસે અહેવાલ લખાવો"):

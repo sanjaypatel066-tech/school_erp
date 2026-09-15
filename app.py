@@ -584,26 +584,60 @@ else:
     elif menu == "🤖 AI અહેવાલ":
         st.markdown("<div class='premium-header'><h2>🤖 સ્માર્ટ AI અહેવાલ લેખક</h2></div>", unsafe_allow_html=True)
         
-        # --- સ્માર્ટ AI અહેવાલ લેખક મોડ્યુલ ---
+        # --- સ્માર્ટ AI અહેવાલ લેખક (ગૂગલ શીટ ડેટા + વધારાના બોક્સ સાથે) ---
         try:
             api_key = st.secrets.get("GEMINI_API_KEY", "")
             if api_key:
                 genai.configure(api_key=api_key)
-                # અહીં મોડ્યુલનું નામ અપડેટ કરીને લેટેસ્ટ વર્ઝન મૂક્યું છે
                 ai_model = genai.GenerativeModel("gemini-3.5-flash-lite")
                 
-                prompt_topic = st.text_input("અહેવાલનો વિષય અથવા મુખ્ય મુદ્દાઓ લખો:", placeholder="દા.ત. શાળામાં યોજાયેલ વિજ્ઞાન મેળો અને પ્રદર્શન...")
-                report_type = st.selectbox("અહેવાલનો પ્રકાર પસંદ કરો:", ["ઔપચારિક અહેવાલ", "ટૂંકો અહેવાલ (સોશિયલ મીડિયા માટે)", "વિગતવાર અહેવાલ", "પ્રેસ નોટ"])
+                raw_creds = st.secrets["GOOGLE_CREDENTIALS"]
+                creds_dict = json.loads(raw_creds, strict=False) 
+                scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+                creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+                client = gspread.authorize(creds)
                 
-                if st.button("✨ AI પાસે અહેવાલ લખાવો"):
-                    if prompt_topic:
+                all_sheets = client.list_spreadsheet_files()
+                if all_sheets:
+                    ai_sheet_options = {s['name']: s['id'] for s in all_sheets}
+                    sel_ai_sheet_name = st.selectbox("📂 અહેવાલ માટે ગૂગલ ફાઇલ પસંદ કરો:", list(ai_sheet_options.keys()), key="ai_sheet_select")
+                    ai_sheet = client.open_by_key(ai_sheet_options[sel_ai_sheet_name])
+                    
+                    ai_worksheets = ai_sheet.worksheets()
+                    ai_ws_names = [w.title for w in ai_worksheets]
+                    sel_ai_ws_name = st.selectbox("📋 ડેટા ટેબ (Worksheet) પસંદ કરો:", ai_ws_names, key="ai_ws_select")
+                    
+                    target_ai_ws = ai_sheet.worksheet(sel_ai_ws_name)
+                    ai_records = target_ai_ws.get_all_values(value_render_option='FORMATTED_VALUE')
+                    
+                    selected_row_text = ""
+                    if len(ai_records) > 1:
+                        ai_options = [f"Row {i+2}: " + " | ".join([str(v) for v in row[:3]]) for i, row in enumerate(ai_records[1:])]
+                        sel_ai_row_idx = st.selectbox("અહેવાલ માટે રેકોર્ડ/રો (Row) પસંદ કરો:", range(len(ai_options)), format_func=lambda x: ai_options[x], key="ai_row_select")
+                        
+                        headers = ai_records[0]
+                        row_vals = ai_records[sel_ai_row_idx + 1]
+                        selected_row_text = "\n".join([f"- {headers[i]}: {row_vals[i]}" for i in range(min(len(headers), len(row_vals))) if row_vals[i]])
+                    else:
+                        st.info("આ ટેબમાં કોઈ ડેટા ઉપલબ્ધ નથી.")
+
+                    st.markdown("---")
+                    col_b1, col_b2 = st.columns(2)
+                    extra_box_1 = col_b1.text_input("📝 વધારાના મુદ્દા અથવા વિશેષ નોંધ:", placeholder="દા.ત. મુખ્ય મહેમાનની ઉપસ્થિતિ, બાળકોનું ઉત્સાહ...")
+                    extra_box_2 = col_b2.text_input("🎯 અહેવાલમાં ખાસ આવરી લેવાની વિગતો:", placeholder="દા.ત. આભારવિધિ, રાષ્ટ્રગીત સાથે સમાપન...")
+                    
+                    report_type = st.selectbox("અહેવાલનો પ્રકાર પસંદ કરો:", ["ઔપચારિક અહેવાલ", "ટૂંકો અહેવાલ (સોશિયલ મીડિયા માટે)", "વિગતવાર અહેવાલ", "પ્રેસ નોટ"])
+                    
+                    if st.button("✨ AI પાસે અહેવાલ લખાવો"):
                         with st.spinner("AI અહેવાલ તૈયાર કરી રહ્યું છે..."):
-                            full_prompt = f"તમે એક નિષ્ણાત શાળા શિક્ષક અને લેખક છો. નીચેના વિષય પર ગુજરાતી ભાષામાં એક ઉત્તમ, સચોટ અને આકર્ષક {report_type} લખો:\n\nવિષય: {prompt_topic}"
+                            combined_context = f"ગૂગલ શીટમાંથી લીધેલ રેકોર્ડ ડેટા:\n{selected_row_text}\n\nવધારાની નોંધ: {extra_box_1}\nખાસ આવરી લેવાની વિગતો: {extra_box_2}"
+                            full_prompt = f"તમે એક નિષ્ણાત શાળા શિક્ષક અને લેખક છો. નીચે આપેલા ગૂગલ શીટના ડેટા અને વધારાની વિગતોનો ઉપયોગ કરીને ગુજરાતી ભાષામાં એક ઉત્તમ, સચોટ અને આકર્ષક {report_type} લખો:\n\n{combined_context}"
+                            
                             response = ai_model.generate_content(full_prompt)
                             st.markdown("### 📄 તૈયાર થયેલ અહેવાલ:")
                             st.write(response.text)
-                    else:
-                        st.warning("કૃપા કરીને અહેવાલનો વિષય લખો.")
+                else:
+                    st.info("કોઈ ગૂગલ શીટ ઉપલબ્ધ નથી.")
             else:
                 st.info("🤖 AI મોડ્યુલ સક્રિય કરવા માટે Streamlit Secrets માં `GEMINI_API_KEY` ઉમેરો.")
         except Exception as e:

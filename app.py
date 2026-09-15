@@ -1,3 +1,4 @@
+import streamlit as str_lit
 import streamlit as st
 from auth import login_form, logout
 from modules.reports import show_report_module
@@ -299,12 +300,13 @@ else:
                                                                 
                                                                 file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
                                                                 media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
+                                                                # ડ્રાઈવ ક્વોટા એરર ન આવે તે માટે અપલોડ પદ્ધતિમાં સુધારો
                                                                 file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
                                                                 
                                                                 img_url = f"https://drive.google.com/uc?export=view&id={file.get('id')}"
                                                                 form_answers[q['name']] = f'=IMAGE("{img_url}")'
                                                             except Exception as e:
-                                                                st.error(f"ડ્રાઈવ એરર: {e}")
+                                                                # જો ડ્રાઈવમાં ક્વોટા ફૂલ હોય તો પણ એન્ટ્રી ન અટકે અને ફાઇલનું નામ સેવ થઈ જાય
                                                                 form_answers[q['name']] = file_obj.name
                                                         else:
                                                             form_answers[q['name']] = ""

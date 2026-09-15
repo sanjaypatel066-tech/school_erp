@@ -390,7 +390,6 @@ else:
                 sel_ws_name = st.selectbox("📋 ડેટા ટેબ (Worksheet) પસંદ કરો:", ws_names, key="viewer_worksheet")
                 target_ws = sheet.worksheet(sel_ws_name)
                 
-                # અહી ફોર્મ્યુલા સાથે ડેટા મેળવવો જેથી =IMAGE(...) ની લિંક પકડાઈ જાય
                 records = target_ws.get_all_values(value_render_option='FORMULA')
                 if len(records) > 1:
                     headers = records[0]
@@ -436,9 +435,15 @@ else:
                                             img_url = photo_val
                                     
                                     if img_url:
+                                        if "id=" in img_url:
+                                            file_id = img_url.split("id=")[1].split("&")[0]
+                                            direct_img_url = f"https://lh3.googleusercontent.com/d/{file_id}"
+                                        else:
+                                            direct_img_url = img_url
+                                            
                                         try:
-                                            st.image(img_url, caption="અપલોડેડ ફોટો", width=250)
-                                        except:
+                                            st.image(direct_img_url, caption="અપલોડેડ ફોટો", width=250)
+                                        except Exception as e:
                                             st.warning("ફોટો લોડ કરવામાં તકલીફ છે.")
                                     else:
                                         st.info(f"સેવ થયેલ માહિતી: {photo_val}")

@@ -7,6 +7,8 @@ import json
 import io
 import gspread
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaIoBaseUpload
 import pandas as pd
 
 # 1. Page Config & Clean Modern UI/UX
@@ -91,6 +93,7 @@ else:
                 scopes = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
                 creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
                 client = gspread.authorize(creds)
+                drive_service = build('drive', 'v3', credentials=creds)
                 
                 all_sheets = client.list_spreadsheet_files()
                 
@@ -108,6 +111,7 @@ else:
                         
                         row_map = {}
                         setup_password = ""
+                        global_folder_id = "1WdU4f1b3R166DoBDaPfVN2qtgkUKum93"
                         
                         for i, row in enumerate(setup_data):
                             if not row: continue
@@ -126,6 +130,12 @@ else:
                             elif "પાસવર્ડ" in header or "password" in header:
                                 if len(row) > 1 and str(row[1]).strip() not in ["", "-"]:
                                     setup_password = str(row[1]).strip()
+                            
+                            for cell in row:
+                                if "folder id" in str(cell).strip().lower():
+                                    cell_idx = row.index(cell)
+                                    if cell_idx + 1 < len(row) and str(row[cell_idx + 1]).strip() not in ["", "-"]:
+                                        global_folder_id = str(row[cell_idx + 1]).strip()
 
                         # --- વન-ટાઇમ સેશન પાસવર્ડ ચેક ---
                         if setup_password and not st.session_state.form_unlocked:
@@ -279,8 +289,23 @@ else:
                                                     if q['type'] == "9":
                                                         file_obj = form_answers.get(q['name'])
                                                         if file_obj:
-                                                            # ફોટો અપલોડ થવામાં ડ્રાઈવ ક્વોટા ન નડે તે માટે ફાઇલનું નામ અને સુરક્ષિત ફોર્મેટ સેટ કર્યું
-                                                            form_answers[q['name']] = file_obj.name
+                                                            try:
+                                                                file_ext = file_obj.name.split('.')[-1]
+                                                                unique_name = f"{int(datetime.datetime.now().timestamp())}.{file_ext}"
+                                                                
+                                                                file_metadata = {'name': unique_name, 'parents': [global_folder_id]}
+                                                                media = MediaIoBaseUpload(io.BytesIO(file_obj.getvalue()), mimetype=file_obj.type, resumable=True)
+                                                                file = drive_service.files().create(body=file_metadata, media_body=media, fields='id', supportsAllDrives=True).execute()
+                                                                
+                                                                # પરમિશન સેટ કરીને પબ્લિક લિંક જનરેટ કરવી
+                                                                file_id = file.get('id')
+                                                                drive_service.permissions().create(fileId=file_id, body={'role': 'reader', 'type': 'anyone'}).execute()
+                                                                
+                                                                img_url = f"https://drive.google.com/uc?export=view&id={file_id}"
+                                                                form_answers[q['name']] = f'=IMAGE("{img_url}")'
+                                                            except Exception as e:
+                                                                # ક્વોટા એરર આવે તો પણ ફાઇલનું નામ અને બેકઅપ લિંક સાચવવી
+                                                                form_answers[q['name']] = file_obj.name
                                                         else:
                                                             form_answers[q['name']] = ""
                                                             
@@ -322,7 +347,7 @@ else:
                                                         edit_answers[col_name] = old_val
                                                     elif q['type'] == "9": 
                                                         if old_val:
-                                                            st.markdown(f"**{col_name}**: ({old_val})")
+                                                            st.markdown(f"**{col_name}**: (પહેલેથી સેવ છે)")
                                                         else:
                                                             st.markdown(f"**{col_name}**: (કોઈ ફોટો નથી)")
                                                         f_up = st.file_uploader(f"નવો ફોટો અપલોડ કરો", type=["png", "jpg", "jpeg", "pdf"], key=f"edit_file_{col_name}")
@@ -409,7 +434,7 @@ else:
                         supabase.table("school_users").update({"password": new_password}).eq("username", st.session_state.username).execute()
                         st.success("✅ તમારો નવો પાસવર્ડ સફળતાપૂર્વક સેવ થઈ ગયો છે!")
                     except Exception as e:
-                        st.error(f"⚠️ એરર:ເຊ : {e}")
+                        st.error(f"⚠️ એરર: {e}")
                 else:
                     st.warning("કૃપા કરીને નવો પાસવર્ડ લખો.")
 
